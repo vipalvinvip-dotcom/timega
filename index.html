@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Portal - Giờ Gà</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 10px; background-color: #f0f2f5; color: #1c1e21; }
+        .container { max-width: 800px; margin: auto; display: none; }
+        .box { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 12px; }
+        .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 5px; }
+        label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 5px; }
+        input[type="date"], input[type="number"], input[type="password"] { padding: 8px; border: 1px solid #ced4da; border-radius: 6px; font-size: 15px; flex: 1; min-width: 120px;}
+        textarea { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ced4da; box-sizing: border-box; font-size: 13px; font-family: monospace; resize: vertical; line-height: 1.4; }
+        .textarea-main { height: 26vh; }
+        .textarea-zalo { height: 12vh; background: #f6ffed; border-color: #b7eb8f; }
+        .textarea-note { height: 9vh; background: #fffbe6; border-color: #ffe58f; }
+        .textarea-incident { height: 9vh; background: #fff1f0; border-color: #ffa39e; }
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; color: #fff; transition: opacity 0.2s; min-width: 140px; }
+        button:active { opacity: 0.8; }
+        .btn-smart { background-color: #00b96b; }
+        .btn-calc { background-color: #1877f2; }
+        .btn-copy { background-color: #31a24c; }
+        .btn-clear { background-color: #e4e6eb; color: #1c1e21; flex: 0.3; min-width: 60px; }
+        .header { text-align: center; margin-bottom: 15px; }
+        .header h3 { margin: 0; color: #00b96b; }
+        .lot-display { font-size: 16px; font-weight: bold; color: #dc3545; background: #ffebee; padding: 5px 10px; border-radius: 4px; }
+        .zalo-section { background: #f6ffed; border: 1px solid #b7eb8f; }
+        .note-section { background: #fffbe6; border: 1px solid #ffe58f; }
+        .incident-section { background: #fff1f0; border: 1px solid #ffa39e; }
+        
+        #lockScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #121212; display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .lock-box { background: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); width: 300px; text-align: center; border: 1px solid #333; color: #fff; }
+        .lock-box h3 { margin-top: 0; color: #00b96b; }
+        .lock-box input { width: 100%; padding: 12px; font-size: 18px; text-align: center; margin-bottom: 15px; box-sizing: border-box; background: #2d2d2d; border: 1px solid #444; color: #fff; border-radius: 6px; }
+        .lock-box button { width: 100%; padding: 12px; background-color: #00b96b; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- MÀN HÌNH KHÓA PIN -->
+    <div id="lockScreen">
+        <div class="lock-box">
+            <h3>🔒 HỆ THỐNG BẢO MẬT</h3>
+            <p style="font-size: 13px; color: #aaa;">Mã PIN mặc định: 1234</p>
+            <input type="password" id="pinInput" placeholder="Mã PIN..." pattern="[0-9]*" inputmode="numeric" autofocus>
+            <button onclick="checkPin()">MỞ KHÓA</button>
+        </div>
+    </div>
+
+    <div class="container" id="mainApp">
+        <div class="header">
+            <h3>Giờ Gà</h3>
+        </div>
+        
+        <div class="box">
+            <div class="row">
+                <input type="date" id="reportDate">
+                <label style="margin:0;">Lot (11/8=223):</label>
+                <input type="number" id="baseLot" value="223" style="max-width: 80px;">
+                <span class="lot-display" id="calculatedLot">Lot: -</span>
+            </div>
+        </div>
+
+        <div class="box zalo-section">
+            <label style="color: #389e0d;">Dán time gà low</label>
+            <textarea id="zaloSmartInput" class="textarea-zalo" placeholder="Dán tin nhắn Zalo vào đây..."></textarea>
+            <div class="btn-group" style="margin-top: 8px;">
+                <button class="btn-smart" onclick="smartParseZalo()">🚀 XỬ LÝ</button>
+            </div>
+        </div>
+
+        <div class="box">
+            <label>Báo cáo chính:</label>
+            <textarea id="ioArea" class="textarea-main" placeholder="Dán văn bản lịch xe vào đây..."></textarea>
+            
+            <div class="btn-group" style="margin-top: 10px;">
+                <button class="btn-calc" onclick="processText()">⚙️ TÍNH GIỜ LẠI</button>
+                <button class="btn-copy" onclick="copyText()">📋 COPY BÁO CÁO</button>
+                <button class="btn-clear" onclick="clearText()">🗑 Xóa Tất Cả</button>
+            </div>
+        </div>
+
+        <div class="box note-section">
+            <label style="color: #d46b08;">📌 Nhật ký Xe & Biển số (Chống trùng lặp):</label>
+            <textarea id="zaloNote" class="textarea-note" placeholder="Thông tin xe và biển số phát sinh..."></textarea>
+        </div>
+
+        <div class="box incident-section">
+            <label style="color: #cf1322;">⚠️ Nhật ký Sự cố & Thời lượng:</label>
+            <textarea id="zaloIncident" class="textarea-incident" placeholder="Các sự cố nhà xưởng kèm thời gian..."></textarea>
+        </div>
+    </div>
+
+<script>
+    const CORRECT_PIN = "1234";
+
+    function checkPin() {
+        const pin = document.getElementById("pinInput").value;
+        if (pin === CORRECT_PIN) {
+            document.getElementById("lockScreen").style.display = "none";
+            document.getElementById("mainApp").style.display = "block";
+            sessionStorage.setItem("isUnlocked", "true");
+        } else {
+            alert("Sai mã PIN!");
+            document.getElementById("pinInput").value = "";
+        }
+    }
+
+    document.getElementById("pinInput").addEventListener("keypress", function (e) {
+        if (e.key === "Enter") checkPin();
+    });
+
+    if (sessionStorage.getItem("isUnlocked") === "true") {
+        document.getElementById("lockScreen").style.display = "none";
+        document.getElementById("mainApp").style.display = "block";
+    }
+
+    const dateInput = document.getElementById('reportDate');
+    const lotDisplay = document.getElementById('calculatedLot');
+    const baseLotInput = document.getElementById('baseLot');
+    const ioArea = document.getElementById('ioArea');
+    const zaloNote = document.getElementById('zaloNote');
+    const zaloIncident = document.getElementById('zaloIncident');
+    const zaloSmartInput = document.getElementById('zaloSmartInput');
+
+    if(localStorage.getItem('saved_date')) dateInput.value = localStorage.getItem('saved_date');
+    else dateInput.valueAsDate = new Date();
+    
+    if(localStorage.getItem('saved_baseLot')) baseLotInput.value = localStorage.getItem('saved_baseLot');
+    if(localStorage.getItem('saved_ioArea')) ioArea.value = localStorage.getItem('saved_ioArea');
+    if(localStorage.getItem('saved_zaloNote')) zaloNote.value = localStorage.getItem('saved_zaloNote');
+    if(localStorage.getItem('saved_zaloIncident')) zaloIncident.value = localStorage.getItem('saved_zaloIncident');
+
+    function saveData() {
+        localStorage.setItem('saved_date', dateInput.value);
+        localStorage.setItem('saved_baseLot', baseLotInput.value);
+        localStorage.setItem('saved_ioArea', ioArea.value);
+        localStorage.setItem('saved_zaloNote', zaloNote.value);
+        localStorage.setItem('saved_zaloIncident', zaloIncident.value);
+    }
+
+    function updateLotDisplay() {
+        const baseDate = new Date('2026-08-11');
+        const baseLot = parseInt(baseLotInput.value) || 223;
+        const selectedDate = new Date(dateInput.value);
+        let currentLot = baseLot;
+        if (!isNaN(selectedDate.getTime())) {
+            const diffTime = selectedDate.getTime() - baseDate.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+            currentLot = baseLot + diffDays;
+        }
+        lotDisplay.innerText = "Lot: " + currentLot;
+        saveData();
+        return currentLot;
+    }
+
+    dateInput.addEventListener('change', updateLotDisplay);
+    baseLotInput.addEventListener('input', updateLotDisplay);
+    ioArea.addEventListener('input', saveData);
+    zaloNote.addEventListener('input', saveData);
+    zaloIncident.addEventListener('input', saveData);
+
+    function standardizeTime(str) {
+        if (!str) return null;
+        let m = str.match(/(\d{1,2})[:hõe](\d{2})/i) || str.match(/(\d{1,2})\.(\d{2})/);
+        if (m) {
+            return `${parseInt(m[1])}h${m[2]}`;
+        }
+        return null;
+    }
+
+    function calculateDuration(timeStr1, timeStr2) {
+        let t1 = standardizeTime(timeStr1);
+        let t2 = standardizeTime(timeStr2);
+        if (!t1 || !t2) return null;
+        let p1 = t1.match(/(\d+)h(\d+)/);
+        let p2 = t2.match(/(\d+)h(\d+)/);
+        let m1 = parseInt(p1[1]) * 60 + parseInt(p1[2]);
+        let m2 = parseInt(p2[1]) * 60 + parseInt(p2[2]);
+        let diff = m2 - m1;
+        if (diff < 0) diff += 24 * 60;
+        let hours = Math.floor(diff / 60);
+        let mins = diff % 60;
+        if (hours > 0 && mins > 0) return `${hours} giờ ${mins} phút`;
+        if (hours > 0) return `${hours} giờ`;
+        return `${mins} phút`;
+    }
+
+    function smartParseZalo() {
+        let rawZalo = zaloSmartInput.value.trim();
+        if (!rawZalo) {
+            alert('Vui lòng dán nội dung tin nhắn Zalo vào ô xanh trước!');
+            return;
+        }
+        let mainText = ioArea.value;
+        if (!mainText.trim()) {
+            alert('Vui lòng nhập/dán lịch xe vào ô lịch chính trước!');
+            return;
+        }
+        let normalizedZalo = rawZalo
+            .replace(/(\d{1,2}[:hõe]\d{2})\s*(Hết|Treo|Line|Xe)/gi, '$1\n$2')
+            .replace(/(Hết xe \d+)\s*(Treo)/gi, '$1\n$2');
+        let rawLines = normalizedZalo.split('\n');
+        let detectedLine = 1;
+        let lastFoundTime = null;
+        let events = [];
+        let notesToAdd = [];
+        let incidentsToAdd = [];
+
+        rawLines.forEach(l => {
+            let lineText = l.trim();
+            if (!lineText) return;
+            if (/line\s*2/i.test(lineText)) detectedLine = 2;
+            if (/line\s*1/i.test(lineText)) detectedLine = 1;
+            let timeMatch = lineText.match(/(\d{1,2})[:hõe](\d{2})/i) || lineText.match(/(\d{1,2})\.(\d{2})/);
+            let curTime = timeMatch ? standardizeTime(timeMatch[0]) : lastFoundTime;
+            if (timeMatch) lastFoundTime = curTime;
+            let xeMatch = lineText.match(/xe\s*(\d+)/i);
+            if (xeMatch) {
+                let vNum = parseInt(xeMatch[1]);
+                let isHet = /hết/i.test(lineText);
+                if (curTime) {
+                    events.push({
+                        line: detectedLine,
+                        vehicle: vNum,
+                        type: isHet ? 'het' : 'treo',
+                        time: curTime,
+                        raw: lineText
+                    });
+                }
+                notesToAdd.push(lineText);
+            } else if (/sự cố|trục trặc|máy|hỏng|lỗi/i.test(lineText)) {
+                let tMatches = lineText.match(/(\d{1,2}[:hõe]\d{2})/gi);
+                let incidentStr = lineText;
+                if (tMatches && tMatches.length >= 2) {
+                    let duration = calculateDuration(tMatches[0], tMatches[1]);
+                    if (duration) incidentStr += ` (Tổng thời gian: ${duration})`;
+                }
+                incidentsToAdd.push(incidentStr);
+            } else {
+                notesToAdd.push(lineText);
+            }
+        });
+
+        for (let i = 0; i < events.length; i++) {
+            let ev = events[i];
+            if (ev.type === 'treo') {
+                let prevVehicle = ev.vehicle - 1;
+                let foundHet = events.find(e => e.line === ev.line && e.vehicle === prevVehicle && e.type === 'het');
+                if (!foundHet) {
+                    events.push({
+                        line: ev.line,
+                        vehicle: prevVehicle,
+                        type: 'het',
+                        time: ev.time,
+                        raw: `Hết xe ${prevVehicle}`
+                    });
+                }
+            }
+        }
+
+        let mainLines = mainText.split('\n');
+        let activeLine = 1;
+
+        events.forEach(up => {
+            if (!up.time) return;
+            let targetPrefix = `Xe${up.vehicle}:`;
+            for (let i = 0; i < mainLines.length; i++) {
+                if (mainLines[i].includes('LINE 1')) activeLine = 1;
+                if (mainLines[i].includes('LINE 2')) activeLine = 2;
+                if (activeLine === up.line && mainLines[i].trim().startsWith(targetPrefix)) {
+                    let lineStr = mainLines[i];
+                    let parts = lineStr.split(':');
+                    let prefix = parts[0] + ':';
+                    let content = parts.slice(1).join(':').trim();
+                    let currentStart = '';
+                    let currentEnd = '';
+                    if (content) {
+                        let mainTimePart = content.split(' - ')[0].trim();
+                        let timeParts = mainTimePart.split('-');
+                        currentStart = timeParts[0] ? timeParts[0].trim() : '';
+                        currentEnd = timeParts[1] ? timeParts[1].trim() : '';
+                    }
+                    if (up.type === 'het') {
+                        currentEnd = up.time;
+                    } else if (up.type === 'treo') {
+                        currentStart = up.time;
+                    }
+                    if (currentStart === currentEnd && currentStart !== '') {
+                        currentEnd = '';
+                    }
+                    mainLines[i] = `${prefix} ${currentStart}-${currentEnd}`;
+                    break;
+                }
+            }
+        });
+
+        ioArea.value = mainLines.join('\n');
+        processText();
+
+        if (notesToAdd.length > 0) {
+            let existingNotes = zaloNote.value ? zaloNote.value.split('\n') : [];
+            notesToAdd.forEach(item => {
+                if (!existingNotes.includes(item)) existingNotes.push(item);
+            });
+            zaloNote.value = existingNotes.join('\n');
+        }
+
+        if (incidentsToAdd.length > 0) {
+            let existingIncidents = zaloIncident.value ? zaloIncident.value.split('\n') : [];
+            incidentsToAdd.forEach(item => {
+                if (!existingIncidents.includes(item)) existingIncidents.push(item);
+            });
+            zaloIncident.value = existingIncidents.join('\n');
+        }
+
+        zaloSmartInput.value = '';
+        saveData();
+        alert('🚀 Xử lý thành công!');
+    }
+
+    function addTime(timeRangeStr) {
+        let trimmed = timeRangeStr.trim();
+        if (!trimmed || !trimmed.includes('-')) return trimmed;
+        const parts = trimmed.split('-');
+        if (parts.length !== 2 || parts[1] === '' || parts[0] === '') return trimmed;
+        const calcEnd = (tStr) => {
+            const match = tStr.trim().match(/^(\d+)h(\d+)$/);
+            if (!match) return null;
+            let h = parseInt(match[1]);
+            let m = parseInt(match[2]);
+            let totalMins = h * 60 + m + 135;
+            let newH = Math.floor(totalMins / 60) % 24;
+            let newM = totalMins % 60;
+            return `${newH}h${newM < 10 ? '0' + newM : newM}`;
+        };
+        const startNew = calcEnd(parts[0]);
+        const endNew = calcEnd(parts[1]);
+        if (startNew && endNew) {
+            return `${trimmed} - ${startNew}-${endNew}`;
+        }
+        return trimmed;
+    }
+
+    function processText() {
+        const dateObj = new Date(dateInput.value);
+        const dayStr = String(dateObj.getDate()).padStart(2, '0');
+        const monthStr = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const formattedDate = `${dayStr}.${monthStr}`;
+        const lotNum = updateLotDisplay();
+        const targetHeader = `🐓 GÀ ${formattedDate} - LOT ${lotNum} 🐓`;
+        let text = ioArea.value;
+        let lines = text.split('\n');
+        while (lines.length > 0 && (lines[0].includes('🐓') || lines[0].includes('GÀ') || lines[0].trim() === '')) {
+            lines.shift();
+        }
+        let processedLines = [];
+        lines.forEach(line => {
+            let trimmed = line.trim();
+            if (trimmed.startsWith('LINE') || trimmed.startsWith('• Sublot') || trimmed.startsWith('Sublot')) {
+                processedLines.push(line);
+            } else if (trimmed === '') {
+                processedLines.push('');
+            } else {
+                let match = line.match(/^(Xe\d+:\s*)(.*)$/);
+                if (match) {
+                    let prefix = match[1];
+                    let content = match[2].trim();
+                    if (!content) {
+                        processedLines.push(prefix);
+                    } else {
+                        let mainPart = content.split(' - ')[0].trim();
+                        processedLines.push(prefix + addTime(mainPart));
+                    }
+                }
+            }
+        });
+        let finalResult = targetHeader + '\n\n' + processedLines.join('\n').trim();
+        ioArea.value = finalResult;
+        saveData();
+    }
+
+    function copyText() {
+        processText();
+        ioArea.select();
+        document.execCommand('copy');
+        const btn = document.querySelector('.btn-copy');
+        const oldText = btn.innerText;
+        btn.innerText = "✅ ĐÃ COPY!";
+        btn.style.backgroundColor = "#28a745";
+        setTimeout(() => {
+            btn.innerText = oldText;
+            btn.style.backgroundColor = "#31a24c";
+        }, 1500);
+    }
+
+    function clearText() {
+        if(confirm('Xóa sạch?')) {
+            ioArea.value = '';
+            zaloNote.value = '';
+            zaloIncident.value = '';
+            zaloSmartInput.value = '';
+            localStorage.clear();
+            updateLotDisplay();
+        }
+    }
+</script>
+</body>
+</html>
