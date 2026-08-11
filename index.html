@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Portal - Giờ Gà</title>
+    <title>Secure Portal - Giờ Gà Pro</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 10px; background-color: #f0f2f5; color: #1c1e21; }
         .container { max-width: 800px; margin: auto; display: none; }
@@ -13,9 +13,10 @@
         input[type="date"], input[type="number"], input[type="password"] { padding: 8px; border: 1px solid #ced4da; border-radius: 6px; font-size: 15px; flex: 1; min-width: 120px;}
         textarea { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ced4da; box-sizing: border-box; font-size: 13px; font-family: monospace; resize: vertical; line-height: 1.4; }
         .textarea-main { height: 26vh; }
-        .textarea-zalo { height: 12vh; background: #f6ffed; border-color: #b7eb8f; }
-        .textarea-note { height: 9vh; background: #fffbe6; border-color: #ffe58f; }
-        .textarea-incident { height: 9vh; background: #fff1f0; border-color: #ffa39e; }
+        .textarea-zalo { height: 10vh; background: #f6ffed; border-color: #b7eb8f; }
+        .textarea-incident-input { height: 8vh; background: #fff1f0; border-color: #ffa39e; }
+        .textarea-note { height: 8vh; background: #fffbe6; border-color: #ffe58f; }
+        .textarea-incident { height: 8vh; background: #fff1f0; border-color: #ffa39e; }
         .btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
         button { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; color: #fff; transition: opacity 0.2s; min-width: 140px; }
         button:active { opacity: 0.8; }
@@ -27,6 +28,7 @@
         .header h3 { margin: 0; color: #00b96b; }
         .lot-display { font-size: 16px; font-weight: bold; color: #dc3545; background: #ffebee; padding: 5px 10px; border-radius: 4px; }
         .zalo-section { background: #f6ffed; border: 1px solid #b7eb8f; }
+        .incident-input-section { background: #fff1f0; border: 1px solid #ffa39e; }
         .note-section { background: #fffbe6; border: 1px solid #ffe58f; }
         .incident-section { background: #fff1f0; border: 1px solid #ffa39e; }
         
@@ -39,19 +41,17 @@
 </head>
 <body>
 
-    <!-- MÀN HÌNH KHÓA PIN -->
     <div id="lockScreen">
         <div class="lock-box">
             <h3>🔒 HỆ THỐNG BẢO MẬT</h3>
-            <p style="font-size: 13px; color: #aaa;">Mã PIN mặc định: 1234</p>
-            <input type="password" id="pinInput" placeholder="Mã PIN..." pattern="[0-9]*" inputmode="numeric" autofocus>
+            <input type="password" id="pinInput" placeholder="Nhập mã PIN..." pattern="[0-9]*" inputmode="numeric" autofocus>
             <button onclick="checkPin()">MỞ KHÓA</button>
         </div>
     </div>
 
     <div class="container" id="mainApp">
         <div class="header">
-            <h3>Giờ Gà</h3>
+            <h3>Giờ Gà Pro</h3>
         </div>
         
         <div class="box">
@@ -64,15 +64,24 @@
         </div>
 
         <div class="box zalo-section">
-            <label style="color: #389e0d;">Dán time gà low</label>
+            <label style="color: #389e0d;">🤖 Dán tin nhắn Zalo:</label>
             <textarea id="zaloSmartInput" class="textarea-zalo" placeholder="Dán tin nhắn Zalo vào đây..."></textarea>
             <div class="btn-group" style="margin-top: 8px;">
-                <button class="btn-smart" onclick="smartParseZalo()">🚀 XỬ LÝ</button>
+                <button class="btn-smart" onclick="smartParseZalo()">🚀 XỬ LÝ ZALO</button>
+            </div>
+        </div>
+
+        <!-- KHUNG NHẬP SỰ CỐ ĐỂ TÍNH DỊCH CHUYỂN THỜI GIAN -->
+        <div class="box incident-input-section">
+            <label style="color: #cf1322;">⚠️ Nhập thông tin sự cố (Ví dụ: Dừng xe 22 từ 20h31 đến 22h27):</label>
+            <textarea id="incidentInputBox" class="textarea-incident-input" placeholder="Nhập nội dung sự cố kèm mốc thời gian dừng và chạy lại..."></textarea>
+            <div class="btn-group" style="margin-top: 8px;">
+                <button class="btn-smart" style="background-color: #cf1322;" onclick="applyIncidentShift()">⏱️ TÍNH TOÁN & DỊCH CHUYỂN GIỜ SỰ CỐ</button>
             </div>
         </div>
 
         <div class="box">
-            <label>Báo cáo chính:</label>
+            <label>📝 Báo cáo chính:</label>
             <textarea id="ioArea" class="textarea-main" placeholder="Dán văn bản lịch xe vào đây..."></textarea>
             
             <div class="btn-group" style="margin-top: 10px;">
@@ -83,7 +92,7 @@
         </div>
 
         <div class="box note-section">
-            <label style="color: #d46b08;">📌 Nhật ký Xe & Biển số (Chống trùng lặp):</label>
+            <label style="color: #d46b08;">📌 Nhật ký Xe & Biển số:</label>
             <textarea id="zaloNote" class="textarea-note" placeholder="Thông tin xe và biển số phát sinh..."></textarea>
         </div>
 
@@ -94,7 +103,7 @@
     </div>
 
 <script>
-    const CORRECT_PIN = "1234";
+    const CORRECT_PIN = "1234"; // Đổi mã PIN của anh ở đây nếu muốn
 
     function checkPin() {
         const pin = document.getElementById("pinInput").value;
@@ -124,6 +133,7 @@
     const zaloNote = document.getElementById('zaloNote');
     const zaloIncident = document.getElementById('zaloIncident');
     const zaloSmartInput = document.getElementById('zaloSmartInput');
+    const incidentInputBox = document.getElementById('incidentInputBox');
 
     if(localStorage.getItem('saved_date')) dateInput.value = localStorage.getItem('saved_date');
     else dateInput.valueAsDate = new Date();
@@ -132,6 +142,7 @@
     if(localStorage.getItem('saved_ioArea')) ioArea.value = localStorage.getItem('saved_ioArea');
     if(localStorage.getItem('saved_zaloNote')) zaloNote.value = localStorage.getItem('saved_zaloNote');
     if(localStorage.getItem('saved_zaloIncident')) zaloIncident.value = localStorage.getItem('saved_zaloIncident');
+    if(localStorage.getItem('saved_incidentInput')) incidentInputBox.value = localStorage.getItem('saved_incidentInput');
 
     function saveData() {
         localStorage.setItem('saved_date', dateInput.value);
@@ -139,6 +150,7 @@
         localStorage.setItem('saved_ioArea', ioArea.value);
         localStorage.setItem('saved_zaloNote', zaloNote.value);
         localStorage.setItem('saved_zaloIncident', zaloIncident.value);
+        localStorage.setItem('saved_incidentInput', incidentInputBox.value);
     }
 
     function updateLotDisplay() {
@@ -161,6 +173,20 @@
     ioArea.addEventListener('input', saveData);
     zaloNote.addEventListener('input', saveData);
     zaloIncident.addEventListener('input', saveData);
+    incidentInputBox.addEventListener('input', saveData);
+
+    function timeToMins(tStr) {
+        let m = tStr.match(/(\d+)h(\d+)/);
+        if (!m) return 0;
+        return parseInt(m[1]) * 60 + parseInt(m[2]);
+    }
+
+    function minsToTime(totalMins) {
+        totalMins = (totalMins + 1440) % 1440;
+        let h = Math.floor(totalMins / 60);
+        let min = totalMins % 60;
+        return `${h}h${min < 10 ? '0' + min : min}`;
+    }
 
     function standardizeTime(str) {
         if (!str) return null;
@@ -175,10 +201,8 @@
         let t1 = standardizeTime(timeStr1);
         let t2 = standardizeTime(timeStr2);
         if (!t1 || !t2) return null;
-        let p1 = t1.match(/(\d+)h(\d+)/);
-        let p2 = t2.match(/(\d+)h(\d+)/);
-        let m1 = parseInt(p1[1]) * 60 + parseInt(p1[2]);
-        let m2 = parseInt(p2[1]) * 60 + parseInt(p2[2]);
+        let m1 = timeToMins(t1);
+        let m2 = timeToMins(t2);
         let diff = m2 - m1;
         if (diff < 0) diff += 24 * 60;
         let hours = Math.floor(diff / 60);
@@ -188,20 +212,138 @@
         return `${mins} phút`;
     }
 
+    // Thuật toán thông minh tự động dịch chuyển giờ do sự cố
+    function applyIncidentShift() {
+        let incidentText = incidentInputBox.value.trim();
+        let mainText = ioArea.value.trim();
+        if (!incidentText) {
+            alert('Vui lòng nhập nội dung sự cố cần tính toán!');
+            return;
+        }
+        if (!mainText) {
+            alert('Vui lòng có lịch xe trong báo cáo chính trước!');
+            return;
+        }
+
+        // Tự động quét các mốc giờ xuất hiện trong ô sự cố
+        let timeMatches = incidentText.match(/(\d{1,2}[:hõe]\d{2})/gi) || incidentText.match(/(\d{1,2})\.(\d{2})/g);
+        if (!timeMatches || timeMatches.length < 2) {
+            alert('Cần cung cấp ít nhất 2 mốc thời gian trong sự cố (Ví dụ: từ 20h31 đến 22h27) để tính toán!');
+            return;
+        }
+
+        let stopTimeStr = standardizeTime(timeMatches[0]);
+        let resumeTimeStr = standardizeTime(timeMatches[1]);
+        let stopMins = timeToMins(stopTimeStr);
+        let resumeMins = timeToMins(resumeTimeStr);
+
+        // Tìm xem sự cố này liên quan đến xe nào (Ví dụ: "xe 22" hoặc "22")
+        let xeMatch = incidentInputBox.value.match(/xe\s*(\d+)/i);
+        if (!xeMatch) {
+            alert('Vui lòng ghi rõ tên xe gặp sự cố trong nội dung (Ví dụ: "Dừng xe 22 từ...")');
+            return;
+        }
+        let targetVehicle = parseInt(xeMatch[1]);
+
+        let mainLines = mainText.split('\n');
+        let activeLine = 1;
+        let shiftMinutes = 0;
+        let targetFound = false;
+
+        let updatedLines = mainLines.map(line => {
+            let lTrim = line.trim();
+            if (lTrim.includes('LINE 1')) activeLine = 1;
+            if (lTrim.includes('LINE 2')) activeLine = 2;
+
+            let match = line.match(/^(Xe\d+:\s*)(.*)$/);
+            if (match) {
+                let prefix = match[1];
+                let content = match[2].trim();
+                let vNum = parseInt(prefix.replace('Xe', ''));
+
+                if (vNum === targetVehicle) {
+                    targetFound = true;
+                    // Tách khoảng thời gian làm việc gốc của xe gặp sự cố
+                    let parts = content.split(' - ');
+                    if (parts.length >= 2) {
+                        let workTime = parts[0].trim(); // ví dụ 18h10-18h40
+                        let wParts = workTime.split('-');
+                        let startW = standardizeTime(wParts[0]);
+                        let endW = standardizeTime(wParts[1]);
+                        
+                        let startWMins = timeToMins(startW);
+                        let endWMins = timeToMins(endW);
+                        let totalDuration = endWMins - startWMins; // Thời lượng gốc cần chạy
+
+                        // Thời gian chạy trước sự cố
+                        let ranBefore = stopMins - startWMins;
+                        if (ranBefore < 0) ranBefore = 0;
+                        let needRunAfter = totalDuration - ranBefore; // Thời gian còn lại cần chạy sau khi hồi phục
+
+                        let newStartEnd = resumeMins;
+                        let newFinalEnd = resumeMins + needRunAfter;
+                        
+                        shiftMinutes = newFinalEnd - endWMins; // Tính độ lệch thời gian bị đẩy lùi để áp dụng cho các xe sau
+
+                        let secondPartTime = parts[1] ? parts[1].trim() : '';
+                        let sParts = secondPartTime.split('-');
+                        let sStart = standardizeTime(sParts[0]);
+                        let sStartMins = timeToMins(sStart) + shiftMinutes;
+                        let sEndMins = sStartMins + totalDuration;
+
+                        return `${prefix} ${startW}-${endW} - ${minsToTime(newStartEnd)}-${minsToTime(newFinalEnd)}`;
+                    }
+                } else if (targetFound && vNum > targetVehicle) {
+                    // Các xe phía sau bị đẩy lùi giờ tương ứng với độ lệch sự cố
+                    let parts = content.split(' - ');
+                    if (parts.length >= 2) {
+                        let workTime = parts[0].trim();
+                        let wParts = workTime.split('-');
+                        let startW = standardizeTime(wParts[0]);
+                        let endW = standardizeTime(wParts[1]);
+
+                        let secondPartTime = parts[1].trim();
+                        let sParts = secondPartTime.split('-');
+                        let sStart = standardizeTime(sParts[0]);
+                        let sEnd = standardizeTime(sParts[1]);
+
+                        let shiftedWStart = minsToTime(timeToMins(startW) + shiftMinutes);
+                        let shiftedWEnd = minsToTime(timeToMins(endW) + shiftMinutes);
+                        let shiftedSStart = minsToTime(timeToMins(sStart) + shiftMinutes);
+                        let shiftedSEnd = minsToTime(timeToMins(sEnd) + shiftMinutes);
+
+                        return `${prefix} ${shiftedWStart}-${shiftedWEnd} - ${shiftedSStart}-${shiftedSEnd}`;
+                    }
+                }
+            }
+            return line;
+        });
+
+        if (!targetFound) {
+            alert('Không tìm thấy xe ' + targetVehicle + ' trong bảng báo cáo chính!');
+            return;
+        }
+
+        ioArea.value = updatedLines.join('\n');
+        
+        // Tự động đưa sự cố vào nhật ký sự cố luôn
+        let durationMins = resumeMins - stopMins;
+        let incLog = `${incidentText} (Dừng ${durationMins} phút, đẩy lịch các xe sau trễ ${shiftMinutes} phút)`;
+        let existingInc = zaloIncident.value ? zaloIncident.value.split('\n') : [];
+        if (!existingInc.includes(incLog)) existingInc.push(incLog);
+        zaloIncident.value = existingInc.join('\n');
+
+        incidentInputBox.value = '';
+        saveData();
+        alert('⏱️ Đã tính toán sự cố và dịch chuyển toàn bộ lịch trình các xe phía sau thành công!');
+    }
+
     function smartParseZalo() {
         let rawZalo = zaloSmartInput.value.trim();
-        if (!rawZalo) {
-            alert('Vui lòng dán nội dung tin nhắn Zalo vào ô xanh trước!');
-            return;
-        }
+        if (!rawZalo) { alert('Vui lòng dán tin nhắn Zalo vào ô xanh trước!'); return; }
         let mainText = ioArea.value;
-        if (!mainText.trim()) {
-            alert('Vui lòng nhập/dán lịch xe vào ô lịch chính trước!');
-            return;
-        }
-        let normalizedZalo = rawZalo
-            .replace(/(\d{1,2}[:hõe]\d{2})\s*(Hết|Treo|Line|Xe)/gi, '$1\n$2')
-            .replace(/(Hết xe \d+)\s*(Treo)/gi, '$1\n$2');
+        if (!mainText.trim()) { alert('Vui lòng nhập/dán lịch xe vào ô lịch chính trước!'); return; }
+        let normalizedZalo = rawZalo.replace(/(\d{1,2}[:hõe]\d{2})\s*(Hết|Treo|Line|Xe)/gi, '$1\n$2').replace(/(Hết xe \d+)\s*(Treo)/gi, '$1\n$2');
         let rawLines = normalizedZalo.split('\n');
         let detectedLine = 1;
         let lastFoundTime = null;
@@ -222,13 +364,7 @@
                 let vNum = parseInt(xeMatch[1]);
                 let isHet = /hết/i.test(lineText);
                 if (curTime) {
-                    events.push({
-                        line: detectedLine,
-                        vehicle: vNum,
-                        type: isHet ? 'het' : 'treo',
-                        time: curTime,
-                        raw: lineText
-                    });
+                    events.push({ line: detectedLine, vehicle: vNum, type: isHet ? 'het' : 'treo', time: curTime, raw: lineText });
                 }
                 notesToAdd.push(lineText);
             } else if (/sự cố|trục trặc|máy|hỏng|lỗi/i.test(lineText)) {
@@ -250,20 +386,13 @@
                 let prevVehicle = ev.vehicle - 1;
                 let foundHet = events.find(e => e.line === ev.line && e.vehicle === prevVehicle && e.type === 'het');
                 if (!foundHet) {
-                    events.push({
-                        line: ev.line,
-                        vehicle: prevVehicle,
-                        type: 'het',
-                        time: ev.time,
-                        raw: `Hết xe ${prevVehicle}`
-                    });
+                    events.push({ line: ev.line, vehicle: prevVehicle, type: 'het', time: ev.time, raw: `Hết xe ${prevVehicle}` });
                 }
             }
         }
 
         let mainLines = mainText.split('\n');
         let activeLine = 1;
-
         events.forEach(up => {
             if (!up.time) return;
             let targetPrefix = `Xe${up.vehicle}:`;
@@ -283,14 +412,9 @@
                         currentStart = timeParts[0] ? timeParts[0].trim() : '';
                         currentEnd = timeParts[1] ? timeParts[1].trim() : '';
                     }
-                    if (up.type === 'het') {
-                        currentEnd = up.time;
-                    } else if (up.type === 'treo') {
-                        currentStart = up.time;
-                    }
-                    if (currentStart === currentEnd && currentStart !== '') {
-                        currentEnd = '';
-                    }
+                    if (up.type === 'het') { currentEnd = up.time; }
+                    else if (up.type === 'treo') { currentStart = up.time; }
+                    if (currentStart === currentEnd && currentStart !== '') { currentEnd = ''; }
                     mainLines[i] = `${prefix} ${currentStart}-${currentEnd}`;
                     break;
                 }
@@ -302,23 +426,18 @@
 
         if (notesToAdd.length > 0) {
             let existingNotes = zaloNote.value ? zaloNote.value.split('\n') : [];
-            notesToAdd.forEach(item => {
-                if (!existingNotes.includes(item)) existingNotes.push(item);
-            });
+            notesToAdd.forEach(item => { if (!existingNotes.includes(item)) existingNotes.push(item); });
             zaloNote.value = existingNotes.join('\n');
         }
-
         if (incidentsToAdd.length > 0) {
             let existingIncidents = zaloIncident.value ? zaloIncident.value.split('\n') : [];
-            incidentsToAdd.forEach(item => {
-                if (!existingIncidents.includes(item)) existingIncidents.push(item);
-            });
+            incidentsToAdd.forEach(item => { if (!existingIncidents.includes(item)) existingIncidents.push(item); });
             zaloIncident.value = existingIncidents.join('\n');
         }
 
         zaloSmartInput.value = '';
         saveData();
-        alert('🚀 Xử lý thành công!');
+        alert('🚀 Xử lý Zalo thành công!');
     }
 
     function addTime(timeRangeStr) {
@@ -338,9 +457,7 @@
         };
         const startNew = calcEnd(parts[0]);
         const endNew = calcEnd(parts[1]);
-        if (startNew && endNew) {
-            return `${trimmed} - ${startNew}-${endNew}`;
-        }
+        if (startNew && endNew) { return `${trimmed} - ${startNew}-${endNew}`; }
         return trimmed;
     }
 
@@ -371,8 +488,14 @@
                     if (!content) {
                         processedLines.push(prefix);
                     } else {
+                        // Nếu dòng đã có cấu trúc dịch chuyển sự cố nhiều cột, giữ nguyên logic
                         let mainPart = content.split(' - ')[0].trim();
-                        processedLines.push(prefix + addTime(mainPart));
+                        let restParts = content.split(' - ').slice(1).join(' - ');
+                        if (restParts) {
+                            processedLines.push(`${prefix} ${content}`);
+                        } else {
+                            processedLines.push(prefix + addTime(mainPart));
+                        }
                     }
                 }
             }
@@ -390,10 +513,7 @@
         const oldText = btn.innerText;
         btn.innerText = "✅ ĐÃ COPY!";
         btn.style.backgroundColor = "#28a745";
-        setTimeout(() => {
-            btn.innerText = oldText;
-            btn.style.backgroundColor = "#31a24c";
-        }, 1500);
+        setTimeout(() => { btn.innerText = oldText; btn.style.backgroundColor = "#31a24c"; }, 1500);
     }
 
     function clearText() {
@@ -402,6 +522,7 @@
             zaloNote.value = '';
             zaloIncident.value = '';
             zaloSmartInput.value = '';
+            incidentInputBox.value = '';
             localStorage.clear();
             updateLotDisplay();
         }
