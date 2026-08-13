@@ -104,9 +104,9 @@
 
 <script>
     // ==========================================
-    // DÁN ĐƯỜNG LINK GOOGLE APP SCRIPT CỦA BẠN VÀO ĐÂY
+    // LINK GOOGLE APP SCRIPT ĐÃ ĐƯỢC CẬP NHẬT
     // ==========================================
-    const GGSHEET_API_URL = "DÁN_LINK_WEB_APP_CỦA_BẠN_VÀO_ĐÂY";
+    const GGSHEET_API_URL = "https://script.google.com/macros/s/AKfycbxp9hlyLO5fzsIc_mwRcqk1Z9AIZkuybxoVGuYJV1v9rQT9taLNQ9_UCgA1CTi5yxXN/exec";
 
     const dateInput = document.getElementById("reportDate");
     const baseLotInput = document.getElementById("baseLot");
@@ -463,7 +463,7 @@
     
     // Tự động tải dữ liệu khi vừa vào web
     window.onload = () => {
-        if(GGSHEET_API_URL !== "https://script.google.com/macros/s/AKfycbxp9hlyLO5fzsIc_mwRcqk1Z9AIZkuybxoVGuYJV1v9rQT9taLNQ9_UCgA1CTi5yxXN/exec") loadDataFromSheets();
+        if(GGSHEET_API_URL !== "DÁN_LINK_WEB_APP_CỦA_BẠN_VÀO_ĐÂY") loadDataFromSheets();
     }
 </script>
 </body>
