@@ -2,626 +2,366 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Giờ Gà</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quản Lý Giờ Gà</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 8px; background-color: #f4f5f7; color: #333333; }
-        .container { max-width: 800px; margin: auto; display: block; }
-        .box { background: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid #e3e6ed; box-shadow: 0 1px 2px rgba(0,0,0,0.02); margin-bottom: 8px; }
-        
-        /* Cấu hình lưới chuẩn xác 2 cột (chia đều 1:1) */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; align-items: center; }
-        
-        label { font-weight: 500; font-size: 13px; display: block; margin-bottom: 4px; color: #555555; }
-        
-        /* Ép các ô input và date giãn đều 100% trong cột của chúng */
-        input[type="date"], input[type="number"], input[type="text"] { width: 100%; max-width: 100%; padding: 6px 8px; border: 1px solid #d0d5dd; border-radius: 4px; font-size: 14px; background: #fff; color: #333; box-sizing: border-box; }
-        
-        textarea { width: 100%; padding: 8px 10px; border-radius: 4px; border: 1px solid #d0d5dd; box-sizing: border-box; font-size: 13px; font-family: monospace; resize: vertical; line-height: 1.3; background: #fafbfc; color: #111; transition: opacity 0.3s; }
-        .textarea-main { height: 35vh; }
-        .textarea-zalo, .textarea-incident-input, .textarea-note, .textarea-incident { height: 6vh; }
-        
-        .btn-group { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
-        button { flex: 1; padding: 9px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; color: #fff; transition: background 0.2s; min-width: 85px; }
-        button:active { opacity: 0.85; }
-        
-        .btn-blue { background-color: #0056b3; }
-        .btn-darkblue { background-color: #334155; }
-        .btn-paste { background-color: #64748b; }
-        .btn-gray { background-color: #475569; }
-        .btn-red { background-color: #b91c1c; }
-        .btn-green { background-color: #16a34a; }
-
-        .header { text-align: center; margin-bottom: 8px; position: relative; }
-        .header h3 { margin: 0; color: #1e293b; font-size: 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;}
-        
-        #syncDot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: #eab308;
-            box-shadow: 0 0 4px rgba(0,0,0,0.15);
-            transition: background-color 0.3s;
-        }
-        
-        .locked { opacity: 0.5; pointer-events: none; }
-        #baseLot { background-color: #f1f5f9; pointer-events: none; text-align: center; font-weight: bold; color: #0056b3; } 
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13.5px; }
+        body { background: #f8fafc; color: #1e293b; padding: 8px; }
+        .container { max-width: 680px; margin: auto; display: flex; flex-direction: column; gap: 8px; }
+        .card { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; }
+        .header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 15px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: #d97706; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; }
+        label { font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 2px; }
+        input, textarea { width: 100%; padding: 7px 9px; border: 1px solid #cbd5e1; border-radius: 5px; outline: none; }
+        textarea { font-family: monospace; resize: vertical; min-height: 55px; line-height: 1.35; }
+        .main-txt { min-height: 260px; }
+        .btn-group { display: flex; gap: 5px; margin-top: 6px; }
+        button { flex: 1; padding: 8px 4px; border: none; border-radius: 5px; font-weight: 600; cursor: pointer; color: #fff; font-size: 12.5px; }
+        button:active { opacity: 0.8; }
+        button:disabled { opacity: 0.45; cursor: not-allowed; }
+        .b-blue { background: #0284c7; } .b-green { background: #16a34a; } .b-red { background: #dc2626; } 
+        .b-slate { background: #475569; } .b-dark { background: #1e293b; } .b-warn { background: #d97706; }
+        #baseLot { font-weight: bold; text-align: center; background: #f1f5f9; color: #0284c7; }
+        .lock-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 5px; font-size: 12.5px; font-weight: 600; }
+        .s-edit { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .s-view { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+        .btn-claim { background: #ea580c; color: #fff; padding: 3px 8px; border-radius: 4px; border: none; font-size: 11.5px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h3>Giờ Gà <span id="syncDot" title="Đang kết nối..."></span></h3>
-        </div>
+<div class="container">
+    <div class="card header">
+        <div><span id="syncDot" class="dot"></span> HỆ THỐNG GIỜ GÀ</div>
+        <button id="lockBtn" class="b-slate edit-btn" style="flex:unset; padding: 4px 10px;" onclick="handleAuthClick()">🔒 Mở khóa Cài đặt</button>
+    </div>
 
-        <!-- Khung Cấu hình chung cân đối hoàn hảo -->
-        <div class="box" style="border: 1px solid #16a34a;">
-            <label style="color: #16a34a; font-weight: bold; margin-bottom: 8px;">⚙️ Cấu hình chung</label>
-            
-            <!-- Hàng 1: Ngày và Lot chia đôi đều tăm tắp -->
-            <div class="grid-2">
-                <div>
-                    <label>Ngày:</label>
-                    <input type="date" id="reportDate">
-                </div>
-                <div>
-                    <label>Lot:</label>
-                    <input type="number" id="baseLot" readonly>
-                </div>
-            </div>
+    <div id="lockStatusBar" class="lock-bar s-view">
+        <span id="lockStatusText">⏳ Đang đồng bộ dữ liệu đám mây...</span>
+        <button id="claimBtn" class="btn-claim" style="display:none;" onclick="forceClaimLock()">⚡ Chiếm quyền sửa</button>
+    </div>
 
-            <!-- Hàng 2: Line 1 và Line 2 nằm chung dòng đối xứng -->
-            <div class="grid-2" style="margin-bottom: 8px;">
-                <div>
-                    <label>LINE 1:</label>
-                    <input type="text" id="configLine1" placeholder="VD: 1, 10, 16...">
-                </div>
-                <div>
-                    <label>LINE 2:</label>
-                    <input type="text" id="configLine2" placeholder="VD: 22, 32, 34...">
-                </div>
-            </div>
+    <div id="secureArea" style="display: flex; flex-direction: column; gap: 8px;"></div>
 
-            <button class="btn-green" style="width: 100%; padding: 10px;" onclick="generateTemplate()">TẠO MẪU ĐỒNG BỘ VÀO TIME</button>
-        </div>
-
-        <div id="inputForms">
-            <div class="box">
-                <label>Time:</label>
-                <textarea id="ioArea" class="textarea-main" placeholder="Dữ liệu mẫu sẽ hiển thị ở đây..." autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
-                <div class="btn-group">
-                    <button class="btn-paste" onclick="pasteText('ioArea')">DÁN</button>
-                    <button class="btn-darkblue" onclick="copyText()">COPY</button>
-                    <button class="btn-gray" onclick="clearText()">XÓA</button>
-                </div>
-            </div>
-
-            <div class="box">
-                <label style="color: #0056b3;">Giờ gà low</label>
-                <textarea id="zaloSmartInput" class="textarea-zalo" placeholder="Nhập giờ gà low" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
-                <div class="btn-group">
-                    <button class="btn-paste" onclick="pasteText('zaloSmartInput')">📥 DÁN</button>
-                    <button class="btn-blue" onclick="smartParseZalo()">XỬ LÝ</button>
-                </div>
-            </div>
-
-            <div class="box">
-                <label style="color: #b91c1c;">Thời gian sự cố, dừng gà "chức năng đang thử nghiệm":</label>
-                <textarea id="incidentInputBox" class="textarea-incident-input" placeholder="VD: Line 1 dừng 19h29-19h39" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
-                <div class="btn-group">
-                    <button class="btn-paste" onclick="pasteText('incidentInputBox')">📥 DÁN</button>
-                    <button class="btn-red" onclick="applyIncidentShift()">XỬ LÝ SỰ CỐ</button>
-                </div>
-            </div>
-
-            <div class="box">
-                <label style="color: #475569;">📌 Nhật ký Xe & Biển số:</label>
-                <textarea id="zaloNote" class="textarea-note" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
-            </div>
-            <div class="box">
-                <label style="color: #b91c1c;">⚠️ Nhật ký Sự cố:</label>
-                <textarea id="zaloIncident" class="textarea-incident" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
-            </div>
+    <div class="card">
+        <label>🕒 BẢNG GIỜ CHI TIẾT</label>
+        <textarea id="ioArea" class="main-txt" placeholder="Đang tải dữ liệu..."></textarea>
+        <div class="btn-group">
+            <button class="b-slate edit-btn" onclick="pasteVal('ioArea')">📋 Dán</button>
+            <button class="b-dark" onclick="copySchedule()">📄 Copy</button>
+            <button class="b-warn edit-btn" onclick="undo()">↩️ Hoàn tác</button>
+            <button class="b-red edit-btn" onclick="clearAll()">🗑️ Xóa</button>
         </div>
     </div>
 
+    <div class="card">
+        <label style="color: #0284c7;">⚡ XỬ LÝ TIN NHẮN ZALO</label>
+        <textarea id="zaloInput" placeholder="Ví dụ: Hết xe 26&#10;Treo xe 27 line 2, BS 793: 17:58"></textarea>
+        <div class="btn-group">
+            <button class="b-slate edit-btn" onclick="pasteVal('zaloInput')">📋 Dán</button>
+            <button class="b-blue edit-btn" onclick="parseZalo()">⚡ Phân tích & Ghi nhận</button>
+        </div>
+    </div>
+</div>
+
 <script>
-    const GGSHEET_API_URL = "https://script.google.com/macros/s/AKfycbxp9hlyLO5fzsIc_mwRcqk1Z9AIZkuybxoVGuYJV1v9rQT9taLNQ9_UCgA1CTi5yxXN/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxp9hlyLO5fzsIc_mwRcqk1Z9AIZkuybxoVGuYJV1v9rQT9taLNQ9_UCgA1CTi5yxXN/exec";
+const $ = id => document.getElementById(id);
+const SALT = "gioga2026", DEFAULT_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"; // Pass: 123456
+const MY_SESSION_ID = 'U_' + Math.random().toString(36).substring(2, 9);
 
-    const dateInput = document.getElementById("reportDate");
-    const baseLotInput = document.getElementById("baseLot");
-    const ioArea = document.getElementById("ioArea");
-    const zaloNote = document.getElementById("zaloNote");
-    const zaloIncident = document.getElementById("zaloIncident");
-    const zaloSmartInput = document.getElementById("zaloSmartInput");
-    const incidentInputBox = document.getElementById("incidentInputBox");
-    const configLine1 = document.getElementById("configLine1");
-    const configLine2 = document.getElementById("configLine2");
-    const syncDot = document.getElementById("syncDot");
-    const inputForms = document.getElementById("inputForms");
+let lockState = { holder: '', lastActive: 0 }, isViewerOnly = true, isInitialized = false, userHasModified = false, myLastActionTime = 0;
+let isUnlocked = false, history = [], saveTimer;
+const H = { zaloNote: '', zaloIncident: '', incInput: '', configLine1: '1, 10, 16, 21', configLine2: '22, 32, 34, 45', reportDate: '', baseLot: '', customHash: '' };
 
-    function getTodayFormatted() {
-        const d = new Date();
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
+const getVal = k => isUnlocked && $(k) ? $(k).value : (H[k] || '');
+const setVal = (k, v) => { H[k] = v; if (isUnlocked && $(k)) $(k).value = v; };
+
+// Xử lý thời gian & Chuẩn hóa
+const parseTime = s => { const m = (s || '').match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/i); return m ? `${+m[1]}h${m[2]}` : null; };
+const toMins = t => { const p = parseTime(t); if (!p) return null; const [h, m] = p.split('h').map(Number); return (h < 5 ? h + 24 : h) * 60 + m; };
+const toTimeStr = m => m === null ? '' : `${Math.floor(((m + 14400) % 1440) / 60)}h${String(m % 60).padStart(2, '0')}`;
+
+// Xóa nhiễu Biển số, Line, Số xe kèm dấu ':' để chống lệch định dạng giờ
+const cleanZaloStr = s => (s || '').replace(/\b(?:bs|biển\s*số|bks|biển)\s*[:\.]?\s*[a-z0-9:\.-]+/gi, ' ').replace(/\b(?:line\s*\d+|l\s*\d+)\s*[:\.]?/gi, ' ');
+const cleanForTime = s => cleanZaloStr(s).replace(/\b(?:xe|x)\s*\d+\s*[:\.]?/gi, ' ');
+
+function syncDate(auto = true) {
+    const d = auto ? new Date(Date.now() - 18e6) : new Date(getVal('reportDate').replace(/-/g, '/'));
+    if (auto) setVal('reportDate', d.toISOString().slice(0, 10));
+    setVal('baseLot', 235 + Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(2026, 7, 23)) / 864e5));
+}
+const getHeader = () => `🐓 GÀ ${getVal('reportDate').split('-').reverse().slice(0, 2).join('.')} - LOT ${getVal('baseLot')} 🐓`;
+
+// Quản lý khóa phiên
+function refreshMyLock() {
+    userHasModified = true; myLastActionTime = lockState.lastActive = Date.now();
+    lockState.holder = MY_SESSION_ID; isViewerOnly = false; renderLockStatus();
+}
+function renderLockStatus() {
+    isViewerOnly = !!(lockState.holder && lockState.holder !== MY_SESSION_ID && (Date.now() - lockState.lastActive < 35000));
+    const isLocked = !isInitialized || isViewerOnly;
+    $('lockStatusBar').className = `lock-bar ${isLocked ? 's-view' : 's-edit'}`;
+    $('lockStatusText').innerText = !isInitialized ? '⏳ Đang đồng bộ dữ liệu...' : (isViewerOnly ? `🔒 Đang có người khác nhập liệu (Tự mở sau ${Math.max(1, Math.ceil((35000 - (Date.now() - lockState.lastActive)) / 1000))}s nếu họ dừng)` : '🟢 Bạn đang giữ quyền chỉnh sửa');
+    $('claimBtn').style.display = (isInitialized && isViewerOnly) ? 'inline-block' : 'none';
+    $('ioArea').readOnly = $('zaloInput').readOnly = isLocked;
+    document.querySelectorAll('.edit-btn').forEach(btn => btn.disabled = isLocked);
+}
+function forceClaimLock() { refreshMyLock(); pushSave(); alert("⚡ Bạn đã nhận quyền chỉnh sửa thành công!"); }
+
+// Bảo mật SHA-256
+async function sha256(msg) {
+    const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
+    return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+}
+async function handleAuthClick() {
+    if (isViewerOnly) return alert("Bạn đang ở chế độ xem, không thể mở Cài đặt!");
+    if (isUnlocked) return lockSettings();
+    const lockUntil = +localStorage.getItem('auth_lock_until') || 0;
+    if (Date.now() < lockUntil) return alert(`⛔ Bị khóa do nhập sai! Thử lại sau ${Math.ceil((lockUntil - Date.now()) / 6e4)} phút.`);
+    const pass = prompt("🔑 Nhập mật khẩu quản trị (Mặc định: 123456):");
+    if (!pass) return;
+    if (await sha256(SALT + pass) === (H.customHash || localStorage.getItem('c_customHash') || DEFAULT_HASH)) {
+        localStorage.removeItem('auth_fails'); localStorage.removeItem('auth_lock_until'); unlockSettings();
+    } else {
+        let f = (+localStorage.getItem('auth_fails') || 0) + 1;
+        localStorage.setItem('auth_fails', f);
+        if (f >= 5) { localStorage.setItem('auth_lock_until', Date.now() + 3e5); alert("⛔ Nhập sai 5 lần! Bị khóa 5 phút."); }
+        else alert(`❌ Sai mật khẩu! Còn ${5 - f} lần thử.`);
     }
+}
+async function changePassword() {
+    const p1 = prompt("🔑 Nhập mật khẩu mới:"), p2 = prompt("🔑 Xác nhận lại mật khẩu mới:");
+    if (!p1 || p1 !== p2) return alert(!p1 ? "Đã hủy!" : "❌ Mật khẩu xác nhận không khớp!");
+    H.customHash = await sha256(SALT + p1);
+    localStorage.setItem('c_customHash', H.customHash); pushSave(); alert("✅ Đổi mật khẩu thành công!");
+}
+function unlockSettings() {
+    isUnlocked = true; $('lockBtn').innerText = "🔓 Khóa Cài đặt"; $('lockBtn').className = "b-warn";
+    $('secureArea').innerHTML = `
+        <div class="card" style="border-color:#16a34a;"><div class="grid-2">
+            <div><label>Ngày:</label><input type="date" id="reportDate" value="${H.reportDate}" onchange="refreshMyLock(); syncDate(false); autoRounds(); pushSave();"></div>
+            <div><label>Lot:</label><input type="number" id="baseLot" value="${H.baseLot}" readonly></div>
+        </div><div class="grid-2">
+            <div><label>Line 1:</label><input type="text" id="configLine1" value="${H.configLine1}" oninput="refreshMyLock(); pushSave()"></div>
+            <div><label>Line 2:</label><input type="text" id="configLine2" value="${H.configLine2}" oninput="refreshMyLock(); pushSave()"></div>
+        </div><div class="btn-group"><button class="b-green edit-btn" onclick="genTemplate()">TẠO BẢNG MẪU MỚI</button><button class="b-slate edit-btn" onclick="changePassword()">🔑 ĐỔI MẬT KHẨU</button></div></div>
+        <div class="card" style="border-color:#dc2626;"><label style="color:#dc2626;">⚠️ SỰ CỐ DỪNG CHUYỀN</label><textarea id="incInput" placeholder="Line 1 dừng 19h29-19h39">${H.incInput}</textarea>
+            <div class="btn-group"><button class="b-slate edit-btn" onclick="pasteVal('incInput')">📋 Dán</button><button class="b-red edit-btn" onclick="applyIncident()">⏱️ Dời giờ</button></div></div>
+        <div class="card"><label>📌 Nhật ký Zalo:</label><textarea id="zaloNote" style="margin-bottom:6px;" oninput="refreshMyLock(); pushSave()">${H.zaloNote}</textarea>
+            <label style="color:#dc2626;">⚠️ Lịch sử sự cố:</label><textarea id="zaloIncident" oninput="refreshMyLock(); pushSave()">${H.zaloIncident}</textarea></div>`;
+    snapshot(); renderLockStatus();
+}
+function lockSettings() {
+    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'reportDate', 'baseLot'].forEach(k => { if ($(k)) H[k] = $(k).value; });
+    isUnlocked = false; $('secureArea').innerHTML = ''; $('lockBtn').innerText = "🔒 Mở khóa Cài đặt"; $('lockBtn').className = "b-slate";
+}
 
-    dateInput.value = getTodayFormatted();
-    updateLotDisplay();
-
-    configLine1.value = localStorage.getItem('saved_config_v3_L1') || "1, 10, 16, 21";
-    configLine2.value = localStorage.getItem('saved_config_v3_L2') || "22, 32, 34, 45";
-
-    function loadLocalCache() {
-        if(localStorage.getItem('cache_ioArea')) ioArea.value = localStorage.getItem('cache_ioArea');
-        if(localStorage.getItem('cache_zaloNote')) zaloNote.value = localStorage.getItem('cache_zaloNote');
-        if(localStorage.getItem('cache_zaloIncident')) zaloIncident.value = localStorage.getItem('cache_zaloIncident');
-        if(localStorage.getItem('cache_incidentInput')) incidentInputBox.value = localStorage.getItem('cache_incidentInput');
-    }
-
-    function saveLocalCache() {
-        localStorage.setItem('cache_ioArea', ioArea.value);
-        localStorage.setItem('cache_zaloNote', zaloNote.value);
-        localStorage.setItem('cache_zaloIncident', zaloIncident.value);
-        localStorage.setItem('cache_incidentInput', incidentInputBox.value);
-    }
-
-    function toggleLock(isLocked) {
-        if (isLocked) inputForms.classList.add('locked');
-        else inputForms.classList.remove('locked');
-    }
-
-    function setSyncStatus(status, text) {
-        if (!syncDot) return;
-        syncDot.title = text; 
-        if (status === 'syncing') syncDot.style.backgroundColor = '#eab308';
-        else if (status === 'success') syncDot.style.backgroundColor = '#16a34a';
-        else if (status === 'error') syncDot.style.backgroundColor = '#b91c1c';
-    }
-
-    let saveTimeout;
-    function triggerSave() {
-        clearTimeout(saveTimeout);
-        setSyncStatus('syncing', 'Đang đợi để lưu...');
-        saveLocalCache();
-        
-        localStorage.setItem('saved_config_v3_L1', configLine1.value);
-        localStorage.setItem('saved_config_v3_L2', configLine2.value);
-
-        saveTimeout = setTimeout(() => { saveDataToSheets(); }, 1000);
-    }
-
-    [dateInput, baseLotInput, ioArea, zaloNote, zaloIncident, incidentInputBox, configLine1, configLine2].forEach(el => {
-        el.addEventListener('input', triggerSave);
+// Chuyển đổi dòng & Vòng 2
+function transformRows(fn) {
+    let line = 1;
+    $('ioArea').value = $('ioArea').value.split('\n').map(r => {
+        if (r.includes('LINE 1')) line = 1; if (r.includes('LINE 2')) line = 2;
+        const m = r.match(/^(Xe(\d+):\s*)(.*)$/i);
+        return m ? fn(m[1], +m[2], m[3].trim(), line, r) : r;
+    }).join('\n');
+}
+function autoRounds() {
+    transformRows((pfx, car, body) => {
+        let [r1 = '', r2 = ''] = body.split(' - ').map(s => s.trim());
+        if (r1.includes('-')) {
+            const [s, e] = r1.split('-').map(toMins);
+            if (s !== null && e !== null && !r2.includes('-')) r2 = `${toTimeStr(s + 135)}-${toTimeStr(s + 135 + e - s)}`;
+        }
+        return `${pfx}${r1}${r2 ? ' - ' + r2 : ''}`;
     });
-    dateInput.addEventListener('change', () => { updateLotDisplay(); triggerSave(); }); 
+    $('ioArea').value = `${getHeader()}\n\n${$('ioArea').value.split('\n').filter(l => !l.includes('🐓')).join('\n').trim()}\n`;
+}
 
-    function saveDataToSheets() {
-        if(!GGSHEET_API_URL) return;
-        setSyncStatus('syncing', 'Đang đẩy dữ liệu lên Sheets...');
-        
-        const data = {
-            date: dateInput.value,
-            baseLot: baseLotInput.value,
-            ioArea: ioArea.value,
-            zaloNote: zaloNote.value,
-            zaloIncident: zaloIncident.value,
-            incidentInput: incidentInputBox.value,
-            configL1: configLine1.value,
-            configL2: configLine2.value
-        };
+// Phân tích Zalo theo mệnh đề ngữ cảnh thông minh
+function parseZalo() {
+    if (isViewerOnly) return alert("Đang có người khác nhập liệu, bạn không thể sửa!");
+    const raw = $('zaloInput').value.trim();
+    if (!raw || !$('ioArea').value.trim()) return alert("Thiếu dữ liệu Time hoặc tin nhắn!");
+    refreshMyLock(); snapshot();
 
-        fetch(GGSHEET_API_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(data)
-        })
-        .then(() => { setSyncStatus('success', 'Đã lưu thành công!'); })
-        .catch(error => { setSyncStatus('error', 'Lỗi đồng bộ mạng!'); });
-    }
+    const clauses = raw.split(/[\n;,]+/).map(s => s.trim()).filter(Boolean);
+    const allTimes = (cleanForTime(raw).match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime);
+    let ctxLine = /\b(l2|line\s*2)\b/i.test(raw) ? 2 : (/\b(l1|line\s*1)\b/i.test(raw) ? 1 : null);
+    const actions = [];
 
-    function loadDataFromSheets(retries = 3) {
-        if(!GGSHEET_API_URL) return;
-        setSyncStatus('syncing', 'Đang kéo dữ liệu từ máy chủ...');
-        toggleLock(true);
-        
-        fetch(GGSHEET_API_URL)
-        .then(response => {
-            if(!response.ok) throw new Error("Mạng chập chờn");
-            return response.json();
-        })
-        .then(data => {
-            ioArea.value = data.ioArea || "";
-            zaloNote.value = data.zaloNote || "";
-            zaloIncident.value = data.zaloIncident || "";
-            incidentInputBox.value = data.incidentInput || "";
-            
-            if(data.configL1) configLine1.value = data.configL1;
-            if(data.configL2) configLine2.value = data.configL2;
-            
-            saveLocalCache();
-            localStorage.setItem('saved_config_v3_L1', configLine1.value);
-            localStorage.setItem('saved_config_v3_L2', configLine2.value);
+    clauses.forEach((cl, i) => {
+        if (/\b(l2|line\s*2)\b/i.test(cl)) ctxLine = 2;
+        else if (/\b(l1|line\s*1)\b/i.test(cl)) ctxLine = 1;
 
-            setSyncStatus('success', 'Đã cập nhật bản mới nhất!');
-            toggleLock(false);
-        })
-        .catch(error => {
-            if (retries > 0) {
-                setSyncStatus('syncing', `Đang kết nối lại...`);
-                setTimeout(() => loadDataFromSheets(retries - 1), 1500);
-            } else {
-                setSyncStatus('error', 'Chạy chế độ Offline (Dữ liệu tạm)');
-                toggleLock(false);
-            }
-        });
-    }
-
-    function updateLotDisplay() { 
-        if (!dateInput.value) {
-            dateInput.value = getTodayFormatted(); 
+        const clean = cleanZaloStr(cl);
+        const forTime = cleanForTime(cl);
+        let times = (forTime.match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime);
+        if (!times.length) {
+            const near = clauses.slice(i + 1).concat(clauses.slice(0, i)).find(s => parseTime(cleanForTime(s)));
+            times = near ? (cleanForTime(near).match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime) : allTimes;
         }
-        const refDate = new Date('2026-08-12T00:00:00'); 
-        const refLot = 224; 
-        const selectedDate = new Date(dateInput.value + 'T00:00:00'); 
-        if (!isNaN(selectedDate.getTime())) { 
-            const diffDays = Math.round((selectedDate.getTime() - refDate.getTime()) / 86400000); 
-            baseLotInput.value = refLot + diffDays; 
-        } 
-        return baseLotInput.value; 
-    }
+        if (!times.length) return;
 
-    function generateTemplate() {
-        if (ioArea.value.trim().length > 20) {
-            let xacNhan = confirm("⚠️ CẢNH BÁO!\n\nBạn đang có dữ liệu trong ô Time. Nếu tạo mẫu mới, TOÀN BỘ giờ xe hiện tại sẽ BỊ XÓA SẠCH.\n\nBạn có chắc chắn muốn xóa đi làm lại từ đầu không?");
-            if (!xacNhan) return; 
-        }
-
-        const parseAdvancedRanges = (arrStr, lineNum) => {
-            let parts = arrStr.split(',').map(s => s.trim()).filter(s => s);
-            let sublots = [];
-            if (parts.length < 2) return sublots;
-
-            let autoSublot = lineNum === 1 ? 11 : 21; 
-
-            for (let i = 0; i < parts.length - 1; i++) {
-                let currentPart = parts[i];
-                let nextPart = parts[i+1];
-                let startCar, sublotName;
-                
-                if (currentPart.includes(':')) {
-                    let temp = currentPart.split(':');
-                    sublotName = temp[0].trim(); 
-                    startCar = parseInt(temp[1].trim()); 
-                } else {
-                    startCar = parseInt(currentPart);
-                    sublotName = autoSublot.toString();
-                    autoSublot++; 
-                }
-
-                let endCar;
-                if (nextPart.includes(':')) {
-                    endCar = parseInt(nextPart.split(':')[1].trim()) - 1;
-                } else {
-                    endCar = parseInt(nextPart) - 1;
-                }
-
-                let cars = [];
-                if (!isNaN(startCar) && !isNaN(endCar) && startCar <= endCar) {
-                    for(let k = startCar; k <= endCar; k++) cars.push(k);
-                }
-                if (cars.length > 0) {
-                    sublots.push({ name: sublotName, cars: cars });
-                }
-            }
-            return sublots;
-        };
-
-        let sublotsL1 = parseAdvancedRanges(configLine1.value, 1);
-        let sublotsL2 = parseAdvancedRanges(configLine2.value, 2);
-
-        let arrL1_raw = configLine1.value.split(',').filter(s => s.trim());
-        let arrL2_raw = configLine2.value.split(',').filter(s => s.trim());
-
-        if((arrL1_raw.length > 0 && arrL1_raw.length < 2) || (arrL2_raw.length > 0 && arrL2_raw.length < 2)) {
-            alert("⚠️ LỖI NHẬP LIỆU:\nYou need to input at least 2 numbers.\nVí dụ: 1, 10, 20");
-            return;
-        }
-
-        if(sublotsL1.length === 0 && sublotsL2.length === 0) { 
-            alert("Vui lòng nhập cấu hình xe!\nVí dụ: 1, 10, 15:16, 20"); 
-            return; 
-        }
-
-        const dObj = new Date(dateInput.value);
-        const fDate = String(dObj.getDate()).padStart(2, '0') + '.' + String(dObj.getMonth() + 1).padStart(2, '0');
-        let res = `🐓 GÀ ${fDate} - LOT ${baseLotInput.value} 🐓\n\n`;
-
-        if(sublotsL1.length > 0) {
-            res += `LINE 1\n`;
-            for(let sl of sublotsL1) {
-                res += `\n • Sublot ${sl.name}\n`;
-                for(let carNum of sl.cars) { 
-                    res += `Xe${carNum}:\n`; 
-                }
-            }
-            res += `\n`; 
-        }
-
-        if(sublotsL2.length > 0) {
-            res += `LINE 2\n`;
-            for(let sl of sublotsL2) {
-                res += `\n • Sublot ${sl.name}\n`;
-                for(let carNum of sl.cars) { 
-                    res += `Xe${carNum}:\n`; 
-                }
-            }
-        }
-        ioArea.value = res.trim() + '\n';
-        triggerSave();
-    }
-
-    function checkWrongPaste(text) {
-        if (!text || text.trim() === "") return false;
-        if (/<html|<!DOCTYPE|<script|<style|<head|<body/i.test(text)) return true;
-        if (/treo\s*xe|hết\s*xe|bs\s*\d|biển\s*số|sự\s*cố/i.test(text)) return true;
-        if (!/Xe\d+:/i.test(text) && !/Sublot/i.test(text) && !/LINE/i.test(text)) return true;
-        return false;
-    }
-
-    async function pasteText(elementId) {
-        try {
-            const textToPaste = await navigator.clipboard.readText();
-            if (elementId === 'ioArea' && checkWrongPaste(textToPaste)) {
-                alert("🛑 HỆ THỐNG ĐÃ CHẶN LẠI!\n\nDữ liệu bạn đang dán không hợp lệ.\nTuyệt đối chỉ dán Lịch Xe vào ô này!");
-                return;
-            }
-            document.getElementById(elementId).value = textToPaste;
-            triggerSave();
-        } catch (err) { alert("Vui lòng giữ tay vào ô nhập để dán thủ công!"); }
-    }
-
-    ioArea.addEventListener('paste', (event) => {
-        let pasteData = (event.clipboardData || window.clipboardData).getData('text');
-        if (checkWrongPaste(pasteData)) {
-            event.preventDefault(); 
-            alert("🛑 HỆ THỐNG ĐÃ CHẶN LẠI!\n\nDữ liệu bạn đang dán không hợp lệ.\nTuyệt đối chỉ dán Lịch Xe vào ô này!");
-        }
+        const ext = (reg, type) => [...clean.matchAll(reg)].forEach(m => actions.push({ car: +m[1], type, times, line: ctxLine }));
+        ext(/(?:hết|het|xong|stop)\s+(?:xe|x)\s*(\d+)/gi, 'HET'); 
+        ext(/(?:xe|x)\s*(\d+)\s*(?:hết|het|xong|stop)/gi, 'HET');
+        ext(/(?:treo|start|bắt đầu)\s+(?:xe|x)\s*(\d+)/gi, 'TREO'); 
+        ext(/(?:xe|x)\s*(\d+)\s*(?:treo|start|bắt đầu)/gi, 'TREO');
+        ext(/(?:xe|x)\s*(\d+)(?!\s*(?:hết|treo|start|stop))/gi, 'AUTO');
     });
 
-    function timeToMins(tStr) { 
-        let m = tStr.match(/(\d+)h(\d+)/); 
-        if(!m) return 0;
-        let h = parseInt(m[1]), min = parseInt(m[2]);
-        if (h < 5) h += 24; 
-        return h * 60 + min; 
-    }
+    transformRows((pfx, car, body, lNum) => {
+        const act = actions.find(a => a.car === car && (!a.line || a.line === lNum));
+        if (!act) return `${pfx}${body}`;
+        let [r1 = '', r2 = ''] = body.split(' - ').map(s => s.trim()), [s = '', e = ''] = r1.includes('-') ? r1.split('-') : [r1, ''];
+        if (act.type === 'HET') e = act.times[0]; 
+        else if (act.type === 'TREO') s = act.times[0];
+        else if (act.times.length >= 2) [s, e] = act.times; 
+        else if (!s) s = act.times[0]; 
+        else e = act.times[0];
+        return `${pfx}${s}-${e}${r2 ? ' - ' + r2 : ''}`;
+    });
+
+    autoRounds(); 
+    setVal('zaloNote', (getVal('zaloNote') ? getVal('zaloNote') + '\n' : '') + raw);
+    $('zaloInput').value = ''; 
+    pushSave();
+}
+
+// Xử lý sự cố dời giờ
+function applyIncident() {
+    if (isViewerOnly) return alert("Bạn không có quyền sửa!");
+    const raw = getVal('incInput').trim(), times = (cleanForTime(raw).match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime);
+    if (times.length < 2) return alert("Cú pháp chuẩn: Line 1 dừng 19h29-19h39");
+    const target = /\b(l2|line\s*2)\b/i.test(raw) ? 2 : 1;
+    let sM = toMins(times[0]), eM = toMins(times[1]); if (eM < sM) eM += 1440;
+    const shift = eM - sM; if (shift <= 0) return alert("Giờ kết thúc phải > bắt đầu!");
     
-    function minsToTime(totalMins) { 
-        totalMins = (totalMins + 1440) % 1440; 
-        let h = Math.floor(totalMins / 60), min = totalMins % 60; 
-        if (h >= 24) h -= 24;
-        return `${h}h${min < 10 ? "0" + min : min}`; 
-    }
+    refreshMyLock(); snapshot();
+    transformRows((pfx, car, body, line) => {
+        if (line !== target) return `${pfx}${body}`;
+        const shiftSeg = seg => {
+            if (!seg.includes('-')) return seg;
+            const [s, e] = seg.split('-').map(toMins);
+            return (s !== null && e !== null && (s >= sM || (sM >= s && sM <= e))) ? `${toTimeStr(s >= sM ? s + shift : s)}-${toTimeStr(e + shift)}` : seg;
+        };
+        const [r1 = '', r2 = ''] = body.split(' - ');
+        return `${pfx}${shiftSeg(r1)}${r2 ? ' - ' + shiftSeg(r2) : ''}`;
+    });
+    setVal('zaloIncident', (getVal('zaloIncident') ? getVal('zaloIncident') + '\n' : '') + `${raw} (+${shift}p)`);
+    setVal('incInput', ''); pushSave(); alert(`✅ Đã dời Line ${target} thêm ${shift} phút!`);
+}
 
-    function standardizeTime(str) { 
-        if (!str) return null;
-        let m = str.match(/(\d{1,2})[:hõe](\d{2})/i) || str.match(/(\d{1,2})\.(\d{2})/); 
-        return m ? `${parseInt(m[1])}h${m[2]}` : null; 
-    }
+// Sinh mẫu Line
+function genTemplate() {
+    if (isViewerOnly) return alert("Bạn không có quyền sửa!");
+    refreshMyLock(); snapshot();
+    const parseL = (cfg, def) => {
+        const arr = cfg.split(',').map(s => s.trim()).filter(Boolean);
+        return arr.slice(0, -1).map((val, i) => ({
+            name: val.includes(':') ? val.split(':')[0].trim() : `${def + i}`,
+            cars: Array.from({ length: (+(arr[i + 1].split(':')[1] || arr[i + 1]) - +(val.split(':')[1] || val)) }, (_, k) => +(val.split(':')[1] || val) + k)
+        }));
+    };
+    const render = (name, lots) => lots.length ? `${name}\n` + lots.map(l => `\n • Sublot ${l.name}\n` + l.cars.map(c => `Xe${c}:`).join('\n')).join('\n') + '\n\n' : '';
+    $('ioArea').value = `${getHeader()}\n\n${render('LINE 1', parseL(getVal('configLine1'), 11))}${render('LINE 2', parseL(getVal('configLine2'), 21))}`.trim() + '\n';
+    pushSave();
+}
 
-    function autoCalculateRounds() {
-        let lines = ioArea.value.split('\n');
-        while (lines.length > 0 && (lines[0].includes('🐓') || lines[0].includes('GÀ') || lines[0].trim() === '')) lines.shift();
-        
-        let processedLines = [];
-        lines.forEach(line => {
-            let trimmed = line.trim();
-            if (trimmed.startsWith('LINE') || trimmed.startsWith('• Sublot') || trimmed.startsWith('Sublot') || trimmed === '') {
-                processedLines.push(line);
-            } else {
-                let match = line.match(/^(Xe\d+:\s*)(.*)$/);
-                if (match) {
-                    let prefix = match[1], content = match[2].trim();
-                    if (!content) processedLines.push(prefix);
-                    else {
-                        let parts = content.split(" - ");
-                        let r1 = parts[0] ? parts[0].trim() : "", r2 = parts[1] ? parts[1].trim() : "";
-                        if (r1.includes("-")) {
-                            let sub1 = r1.split("-");
-                            let s1_str = standardizeTime(sub1[0]), e1_str = standardizeTime(sub1[1]);
-                            if (s1_str && e1_str) {
-                                let s1_m = timeToMins(s1_str), e1_m = timeToMins(e1_str);
-                                if (!r2 || !r2.includes("-")) {
-                                    let s2_m = s1_m + 135, e2_m = s2_m + (e1_m - s1_m);
-                                    r2 = `${minsToTime(s2_m)}-${minsToTime(e2_m)}`;
-                                }
-                            }
-                        }
-                        processedLines.push(`${prefix}${r1}${r2 ? ' - ' + r2 : ''}`);
-                    }
-                }
-            }
-        });
+// Quản lý trạng thái Undo & Lưu trữ
+function snapshot() {
+    const s = { ioArea: $('ioArea').value, zaloInput: $('zaloInput').value, ...H };
+    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2'].forEach(k => { if ($(k)) s[k] = $(k).value; });
+    if (JSON.stringify(history.at(-1)) !== JSON.stringify(s)) { history.push(s); if (history.length > 25) history.shift(); }
+}
+function undo() {
+    if (isViewerOnly || history.length <= 1) return alert(isViewerOnly ? "Không có quyền sửa!" : "Không còn lịch sử hoàn tác!");
+    refreshMyLock(); history.pop(); const p = history.at(-1);
+    $('ioArea').value = p.ioArea || ''; $('zaloInput').value = p.zaloInput || '';
+    Object.keys(H).forEach(k => setVal(k, p[k] || '')); pushSave();
+}
+function pushSave() {
+    if (!isInitialized) return;
+    clearTimeout(saveTimer); $('syncDot').style.background = '#d97706';
+    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2'].forEach(k => { if ($(k)) H[k] = $(k).value; });
+    localStorage.setItem('c_ioArea', $('ioArea').value);
+    Object.keys(H).forEach(k => localStorage.setItem('c_' + k, H[k]));
+    saveTimer = setTimeout(() => {
+        if (!API_URL) return;
+        fetch(API_URL, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+                date: getVal('reportDate'), baseLot: getVal('baseLot'), ioArea: $('ioArea').value,
+                zaloNote: getVal('zaloNote'), zaloIncident: getVal('zaloIncident'), incidentInput: getVal('incInput'),
+                configL1: getVal('configLine1'), configL2: getVal('configLine2'),
+                lockHolder: lockState.holder, lockActive: lockState.lastActive
+            })
+        }).then(() => $('syncDot').style.background = '#16a34a').catch(() => $('syncDot').style.background = '#dc2626');
+    }, 600);
+}
 
-        const dateObj = new Date(dateInput.value);
-        const fDate = String(dateObj.getDate()).padStart(2, '0') + '.' + String(dateObj.getMonth() + 1).padStart(2, '0');
-        ioArea.value = `🐓 GÀ ${fDate} - LOT ${baseLotInput.value} 🐓\n\n` + processedLines.join('\n').trim() + '\n';
-    }
+async function pasteVal(id) { 
+    if (isViewerOnly) return alert("Bạn không có quyền sửa!");
+    refreshMyLock(); snapshot(); 
+    try { const t = await navigator.clipboard.readText(); if ($(id)) $(id).value = t; else setVal(id, t); pushSave(); } catch {} 
+}
+async function copySchedule() { autoRounds(); await navigator.clipboard.writeText($('ioArea').value); alert("✅ Đã chép lịch!"); }
+function clearAll() { 
+    if (isViewerOnly) return alert("Bạn không có quyền sửa!");
+    if (confirm("Xóa sạch toàn bộ bảng?")) { refreshMyLock(); snapshot(); $('ioArea').value = $('zaloInput').value = ''; Object.keys(H).forEach(k => setVal(k, '')); pushSave(); } 
+}
 
-    function smartParseZalo() {
-        try {
-            let rawZalo = zaloSmartInput.value.trim();
-            if (!rawZalo || !ioArea.value.trim()) { alert("Chưa dán đủ dữ liệu!"); return; }
-
-            let normalizedZalo = rawZalo.replace(/(\d{1,2}):(\d{2})/g, '$1h$2');
-            let lines = normalizedZalo.split('\n'), detectedLine = 1, sharedTime = null;
-            let mainLines = ioArea.value.split('\n');
-
-            let timeM = normalizedZalo.match(/(\d{1,2}h\d{2})/i);
-            if (timeM) sharedTime = standardizeTime(timeM[1]);
-
-            lines.forEach(l => {
-                let text = l.trim();
-                if (!text) return;
-                if (/line\s*2/i.test(text)) detectedLine = 2;
-                if (/line\s*1/i.test(text)) detectedLine = 1;
-
-                let tMatch = text.match(/(\d{1,2}h\d{2})/i);
-                if (tMatch) sharedTime = standardizeTime(tMatch[1]);
-
-                let xeMatch = text.match(/xe\s*(\d+)/i);
-                if (xeMatch && sharedTime) {
-                    let vNum = parseInt(xeMatch[1]), isTreo = /treo/i.test(text), isHet = /hết/i.test(text), prevV = vNum - 1;
-                    let activeL = 1;
-                    mainLines = mainLines.map(mLine => {
-                        let tLine = mLine.trim();
-                        if (tLine.includes('LINE 1')) activeL = 1;
-                        if (tLine.includes('LINE 2')) activeL = 2;
-                        let xM = mLine.match(/^(Xe\d+:\s*)(.*)$/);
-                        if (xM && activeL === detectedLine) {
-                            let prefix = xM[1], curV = parseInt(xM[1].replace("Xe", ""));
-                            let parts = xM[2].trim().split(" - ");
-                            let r1 = parts[0] ? parts[0].trim() : "", r2 = parts[1] ? parts[1].trim() : "";
-                            if (curV === vNum && isTreo) {
-                                r1 = r1.includes("-") ? `${sharedTime}-${r1.split("-")[1]}` : `${sharedTime}-`;
-                                return `${prefix}${r1}${r2 ? ' - ' + r2 : ''}`;
-                            }
-                            if ((curV === vNum && isHet) || (curV === prevV && rawZalo.toLowerCase().includes(`hết xe ${prevV}`))) {
-                                r1 = r1.includes("-") ? `${r1.split("-")[0]}-${sharedTime}` : `-${sharedTime}`;
-                                return `${prefix}${r1}${r2 ? ' - ' + r2 : ''}`;
-                            }
-                        }
-                        return mLine;
-                    });
-                }
-            });
-
-            ioArea.value = mainLines.join('\n');
-            autoCalculateRounds(); 
-            zaloNote.value = (zaloNote.value ? zaloNote.value + '\n' : '') + rawZalo;
-            zaloSmartInput.value = '';
-            triggerSave();
-        } catch (e) { alert("Lỗi: " + e.message); }
-    }
-
-    function applyIncidentShift() {
-        try {
-            let text = incidentInputBox.value.trim();
-            if (!text || !ioArea.value.trim()) { 
-                alert("Vui lòng nhập đúng cú pháp: Line [1/2] dừng [Giờ_bắt_đầu]-[Giờ_kết_thúc]"); 
-                return; 
-            }
-
-            let isLine1 = /line\s*1/i.test(text);
-            let isLine2 = /line\s*2/i.test(text);
-            let hasDung = /dừng/i.test(text);
-
-            let timeMatches = text.match(/(\d{1,2}[:hõe\.]\d{2})/gi);
-
-            if (!hasDung || (!isLine1 && !isLine2) || !timeMatches || timeMatches.length < 2) {
-                alert("⚠️ NHẬP SAI CÚ PHÁP!\nVui lòng nhập chuẩn theo mẫu:\nLine 1 dừng 19h29-19h39");
-                return;
-            }
-
-            let targetLine = isLine2 ? 2 : 1;
-            let stopStr = standardizeTime(timeMatches[0]);
-            let resumeStr = standardizeTime(timeMatches[1]);
-            
-            if (!stopStr || !resumeStr) { 
-                alert("Định dạng thời gian không hợp lệ! Ví dụ: 19h29-19h39"); 
-                return; 
-            }
-
-            let stopMins = timeToMins(stopStr);
-            let resumeMins = timeToMins(resumeStr);
-            let shiftMinutes = resumeMins - stopMins; 
-            
-            if (shiftMinutes <= 0) {
-                alert("Giờ kết thúc sự cố phải lớn hơn giờ bắt đầu!");
-                return;
-            }
-
-            let lines = ioArea.value.split("\n");
-            let activeLine = 1;
-
-            let updated = lines.map(line => {
-                let lTrim = line.trim();
-                if (lTrim.includes('LINE 1')) activeLine = 1;
-                if (lTrim.includes('LINE 2')) activeLine = 2;
-                let m = line.match(/^(Xe\d+:\s*)(.*)$/);
-                if (m && activeLine === targetLine) {
-                    let parts = m[2].split(" - ");
-                    let r1 = parts[0] ? parts[0].trim() : "", r2 = parts[1] ? parts[1].trim() : "";
-
-                    if (r1 && r1.includes("-")) {
-                        let sub1 = r1.split("-");
-                        let s1_str = standardizeTime(sub1[0]), e1_str = standardizeTime(sub1[1]);
-                        if (s1_str && e1_str) {
-                            let s1 = timeToMins(s1_str), e1 = timeToMins(e1_str);
-                            if (s1 >= stopMins || (stopMins >= s1 && stopMins <= e1)) {
-                                let newS1 = s1 >= stopMins ? s1 + shiftMinutes : s1;
-                                let newE1 = e1 + shiftMinutes;
-                                r1 = `${minsToTime(newS1)}-${minsToTime(newE1)}`;
-                            }
-                        }
-                    }
-
-                    if (r2 && r2.includes("-")) {
-                        let sub2 = r2.split("-");
-                        let s2_str = standardizeTime(sub2[0]), e2_str = standardizeTime(sub2[1]);
-                        if (s2_str && e2_str) {
-                            let s2 = timeToMins(s2_str), e2 = timeToMins(e2_str);
-                            if (s2 >= stopMins || (stopMins >= s2 && stopMins <= e2)) {
-                                let newS2 = s2 >= stopMins ? s2 + shiftMinutes : s2;
-                                let newE2 = e2 + shiftMinutes;
-                                r2 = `${minsToTime(newS2)}-${minsToTime(newE2)}`;
-                            }
-                        }
-                    }
-
-                    return `${m[1]}${r1}${r2 ? ' - ' + r2 : ''}`;
-                }
-                return line;
-            });
-
-            ioArea.value = updated.join("\n");
-            
-            let incLog = `${text} (Dời trễ ${shiftMinutes} phút)`;
-            zaloIncident.value = (zaloIncident.value ? zaloIncident.value + '\n' : '') + incLog;
-            incidentInputBox.value = '';
-            triggerSave();
-            alert(`✅ Xử lý sự cố thành công!\nLine ${targetLine} từ mốc ${stopStr} trở đi đã được tự động dời trễ thêm ${shiftMinutes} phút.`);
-
-        } catch (e) { alert("Lỗi hệ thống: " + e.message); }
-    }
-
-    function copyText() {
-        try {
-            autoCalculateRounds();
-            ioArea.select();
-            document.execCommand('copy');
-            alert("Đã copy báo cáo!");
-        } catch (e) { alert("Lỗi: " + e.message); }
-    }
-
-    function clearText() {
-        if(confirm("Xóa sạch toàn bộ dữ liệu?")) { 
-            ioArea.value = ""; zaloNote.value = ""; zaloIncident.value = ""; 
-            incidentInputBox.value = ""; zaloSmartInput.value = "";
-            saveLocalCache(); 
-            triggerSave(); 
+// Đồng bộ Cloud Realtime
+function fetchRemoteData() {
+    if (!API_URL) return;
+    fetch(API_URL).then(r => r.json()).then(d => {
+        if (d.lockHolder !== undefined && d.lockActive !== undefined) {
+            lockState.holder = d.lockHolder; lockState.lastActive = +d.lockActive;
         }
+        if (!isInitialized) {
+            if (d.ioArea !== undefined && d.ioArea !== '') { $('ioArea').value = d.ioArea; localStorage.setItem('c_ioArea', d.ioArea); }
+            const map = { incidentInput: 'incInput', configL1: 'configLine1', configL2: 'configLine2', date: 'reportDate', baseLot: 'baseLot', zaloNote: 'zaloNote', zaloIncident: 'zaloIncident' };
+            Object.keys(map).forEach(k => { if (d[k] !== undefined) setVal(map[k], d[k]); });
+            isInitialized = true; snapshot();
+        } else if (isViewerOnly) {
+            if (d.ioArea !== undefined && d.ioArea !== $('ioArea').value) $('ioArea').value = d.ioArea;
+            ['zaloNote', 'zaloIncident', 'incidentInput'].forEach(k => {
+                const mapK = k === 'incidentInput' ? 'incInput' : k;
+                if (d[k] !== undefined) setVal(mapK, d[k]);
+            });
+        }
+        renderLockStatus(); $('syncDot').style.background = '#16a34a';
+    }).catch(() => { if (!isInitialized) { isInitialized = true; renderLockStatus(); } $('syncDot').style.background = '#dc2626'; });
+}
+
+// Khởi tạo
+window.onload = () => {
+    syncDate(true);
+    const cachedIO = localStorage.getItem('c_ioArea');
+    if (cachedIO) $('ioArea').value = cachedIO;
+    Object.keys(H).forEach(k => { const c = localStorage.getItem('c_' + k); if (c) H[k] = c; });
+    const savedHash = localStorage.getItem('c_customHash');
+    if (savedHash) H.customHash = savedHash;
+
+    $('ioArea').oninput = () => { refreshMyLock(); pushSave(); };
+    $('zaloInput').oninput = () => { refreshMyLock(); };
+    fetchRemoteData();
+};
+
+setInterval(() => {
+    if (isInitialized && !isViewerOnly && userHasModified && (Date.now() - myLastActionTime < 30000)) {
+        lockState.lastActive = Date.now(); pushSave();
     }
-    
-    window.onload = () => {
-        loadLocalCache();
-        if(GGSHEET_API_URL) loadDataFromSheets();
+    fetchRemoteData();
+}, 6000);
+
+setInterval(() => { 
+    if (!isViewerOnly && isInitialized) {
+        const old = getVal('reportDate'); syncDate(true);
+        if (old !== getVal('reportDate') && $('ioArea').value.includes('🐓')) { autoRounds(); pushSave(); }
     }
+}, 30000);
 </script>
 </body>
 </html>
