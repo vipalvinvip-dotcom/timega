@@ -153,16 +153,12 @@ function renderLockStatus() {
 }
 function forceClaimLock() { refreshMyLock(); pushSave(); alert("⚡ Bạn đã nhận quyền chỉnh sửa thành công!"); }
 
-// Gửi thẳng về Telegram
+// Gửi thẳng về Telegram - Chỉ 1 dòng duy nhất, không bị nhân đôi tin nhắn
 function sendTelegramOTP(otp) {
+    const token = "8778714722:AAHix0GsUdxzqUCznUF1vmM780mI6EZf0EU";
     const text = `🔔 HỆ THỐNG GIỜ GÀ\n🔑 Mã OTP mở khóa: ${otp}\n⏱️ Hiệu lực: 3 phút.`;
-    TELE_TOKENS.forEach(token => {
-        const beacon = new Image();
-        beacon.src = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${TELE_ADMIN_ID}&text=${encodeURIComponent(text)}&_t=${Date.now()}`;
-        try {
-            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${TELE_ADMIN_ID}&text=${encodeURIComponent(text)}`, { mode: 'no-cors' }).catch(() => {});
-        } catch (e) {}
-    });
+    const beacon = new Image();
+    beacon.src = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${TELE_ADMIN_ID}&text=${encodeURIComponent(text)}&_t=${Date.now()}`;
     return true;
 }
 
