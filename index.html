@@ -73,8 +73,11 @@
 <script>
 const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbyHLQ99yD7y4m18OMNlBEwPpOygAX5dsZU-tgIR1mbRkAYDAFpqHEwotk_QGk3lzf0l/exec";
 const MASTER_PASS = "123456";
-const TELE_BOT_TOKEN = "8778714722:AAHixOGsUdxzqUCznUF1vmM78OmI6EZfOEU";
 const TELE_ADMIN_ID = "812350114";
+const TELE_TOKENS = [
+    "8778714722:AAHix0GsUdxzqUCznUF1vmM780mI6EZf0EU",
+    "8778714722:AAHixOGsUdxzqUCznUF1vmM78OmI6EZfOEU"
+];
 
 const getApiUrl = () => (localStorage.getItem('c_apiUrl') || DEFAULT_API_URL).trim();
 const setApiUrl = (url) => { 
@@ -100,7 +103,7 @@ const parseTime = s => { const m = (s || '').match(/\b(2[0-3]|[01]?[0-9])\s*[:hg
 const toMins = t => { const p = parseTime(t); if (!p) return null; const [h, m] = p.split('h').map(Number); return (h < 5 ? h + 24 : h) * 60 + m; };
 const toTimeStr = m => m === null ? '' : `${Math.floor(((m + 14400) % 1440) / 60)}h${String(m % 60).padStart(2, '0')}`;
 
-// Tốc độ chuyền
+// Nội suy tốc độ chuyền ra thời gian chờ giữa 2 vòng (120 -> 135p, 125 -> 130p)
 const speedToOffset = spd => Math.round(16200 / (+spd || 120));
 const getRoundOffset = () => speedToOffset(getVal('lineSpeed') || 120);
 const getSpeedTimeDesc = spd => {
@@ -144,25 +147,16 @@ function renderLockStatus() {
 }
 function forceClaimLock() { refreshMyLock(); pushSave(); alert("⚡ Bạn đã nhận quyền chỉnh sửa thành công!"); }
 
-// Gửi OTP đồng thời qua API Google Apps Script và Image Beacon trực tiếp
-async function sendTelegramOTP(otp) {
-    const text = `🔔 *HỆ THỐNG GIỜ GÀ*\n🔑 Mã OTP mở khóa: *${otp}*\n⏱️ Hiệu lực: 3 phút`;
-    try {
+// Gửi thẳng về Telegram (thử cả 2 token để phòng lỗi nhầm số 0 và chữ O)
+function sendTelegramOTP(otp) {
+    const text = `🔔 HỆ THỐNG GIỜ GÀ\n🔑 Mã OTP mở khóa Cài đặt: ${otp}\n⏱️ Mã có hiệu lực trong 3 phút.`;
+    TELE_TOKENS.forEach(token => {
         const beacon = new Image();
-        beacon.src = `https://api.telegram.org/bot${TELE_BOT_TOKEN}/sendMessage?chat_id=${TELE_ADMIN_ID}&text=${encodeURIComponent(text)}&parse_mode=Markdown&_t=${Date.now()}`;
-    } catch (e) {}
-
-    const apiUrl = getApiUrl();
-    if (apiUrl) {
+        beacon.src = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${TELE_ADMIN_ID}&text=${encodeURIComponent(text)}&_t=${Date.now()}`;
         try {
-            await fetch(apiUrl, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify({ action: "send_otp", text: text })
-            });
+            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${TELE_ADMIN_ID}&text=${encodeURIComponent(text)}`, { mode: 'no-cors' }).catch(() => {});
         } catch (e) {}
-    }
+    });
     return true;
 }
 
@@ -178,12 +172,12 @@ async function handleAuthClick() {
     btn.innerText = "⏳ Đang gửi OTP...";
     btn.disabled = true;
 
-    await sendTelegramOTP(currentOTP);
+    sendTelegramOTP(currentOTP);
 
     setTimeout(() => {
         btn.innerText = oldText;
         btn.disabled = false;
-        const code = prompt("📲 Mã xác thực OTP đã được gửi về Telegram.\n(Hoặc nhập mật khẩu quản trị 123456 nếu đổi Sheet mới):");
+        const code = prompt("📲 Mã xác thực OTP đã được gửi về Telegram.\n(Hoặc nhập mật khẩu quản trị 123456):");
         if (!code) return;
 
         const val = code.trim();
@@ -196,16 +190,16 @@ async function handleAuthClick() {
     }, 700);
 }
 
-// Cấu hình cập nhật Sheet URL động
+// Cập nhật link Sheet mới trực tiếp trên giao diện
 function saveNewSheetUrl() {
     const input = $('customApiUrl');
     if (!input) return;
     const url = input.value.trim();
-    if (!url.startsWith('http')) return alert("❌ URL không hợp lệ! Vui lòng nhập link Web App Google Apps Script dạng https://script.google.com/macros/s/.../exec");
+    if (!url.startsWith('http')) return alert("❌ URL không hợp lệ! Hãy dán link Web App dạng https://script.google.com/macros/s/.../exec");
     setApiUrl(url);
-    $('apiUrlStatus').innerHTML = "<span style='color:#16a34a;'>⏳ Đang kiểm tra kết nối với Sheet mới...</span>";
+    $('apiUrlStatus').innerHTML = "<span style='color:#16a34a;'>⏳ Đang kết nối với Sheet mới...</span>";
     isInitialized = false;
-    fetchRemoteData();
+    fetchRemoteData(true);
     setTimeout(() => {
         $('apiUrlStatus').innerHTML = "<span style='color:#16a34a;'>✅ Đã liên kết và đồng bộ thành công với Sheet mới!</span>";
         alert("✅ Đã cập nhật Sheet mới thành công!");
@@ -217,7 +211,7 @@ function resetDefaultSheetUrl() {
         setApiUrl('');
         if ($('customApiUrl')) $('customApiUrl').value = DEFAULT_API_URL;
         isInitialized = false;
-        fetchRemoteData();
+        fetchRemoteData(true);
         alert("✅ Đã khôi phục về link Sheet mặc định!");
     }
 }
@@ -237,13 +231,13 @@ function unlockSettings() {
 
         <div class="card" style="border-color:#16a34a;">
             <div class="grid-2">
-                <div><label>Ngày:</label><input type="date" id="reportDate" value="${H.reportDate}" onchange="refreshMyLock(); syncDate(false); autoRounds(true); pushSave();"></div>
+                <div><label>Ngày:</label><input type="date" id="reportDate" value="${H.reportDate}" onchange="refreshMyLock(); H.reportDate = this.value; syncDate(false); autoRounds(true); pushSave();"></div>
                 <div><label>Lot:</label><input type="number" id="baseLot" value="${H.baseLot}" readonly></div>
             </div>
             <div class="grid-2">
                 <div>
                     <label>Tốc độ Line (con/phút):</label>
-                    <input type="number" id="lineSpeed" value="${H.lineSpeed || 120}" oninput="refreshMyLock(); updateSpeedDisplay(); autoRounds(true); pushSave();" placeholder="120">
+                    <input type="number" id="lineSpeed" value="${H.lineSpeed || 120}" oninput="refreshMyLock(); H.lineSpeed = this.value; updateSpeedDisplay(); autoRounds(true); pushSave();" placeholder="120">
                 </div>
                 <div>
                     <label>Thời gian vòng 2:</label>
@@ -251,8 +245,8 @@ function unlockSettings() {
                 </div>
             </div>
             <div class="grid-2">
-                <div><label>Line 1:</label><input type="text" id="configLine1" value="${H.configLine1}" oninput="refreshMyLock(); pushSave()"></div>
-                <div><label>Line 2:</label><input type="text" id="configLine2" value="${H.configLine2}" oninput="refreshMyLock(); pushSave()"></div>
+                <div><label>Line 1:</label><input type="text" id="configLine1" value="${H.configLine1 || '1, 10, 16, 21'}" oninput="refreshMyLock(); H.configLine1 = this.value; pushSave()"></div>
+                <div><label>Line 2:</label><input type="text" id="configLine2" value="${H.configLine2 || '22, 32, 34, 45'}" oninput="refreshMyLock(); H.configLine2 = this.value; pushSave()"></div>
             </div>
             <div class="btn-group">
                 <button class="b-green edit-btn" onclick="genTemplate()">TẠO BẢNG MẪU MỚI</button>
@@ -343,7 +337,7 @@ function parseIncident(raw) {
     return { targetLine, sM, eM, shift };
 }
 
-// Xử lý sự cố dời giờ (bảo vệ mốc giờ Vòng 1 khi sự cố ở Vòng 2)
+// Xử lý sự cố dời giờ
 function applyIncident() {
     if (isViewerOnly) return alert("Bạn không có quyền sửa!");
     const raw = getVal('incInput').trim();
@@ -449,21 +443,23 @@ function parseZalo() {
     pushSave();
 }
 
+// Sinh mẫu Line
 function genTemplate() {
     if (isViewerOnly) return alert("Bạn không có quyền sửa!");
     refreshMyLock(); snapshot();
     const parseL = (cfg, def) => {
-        const arr = cfg.split(',').map(s => s.trim()).filter(Boolean);
+        const arr = (cfg || '').split(',').map(s => s.trim()).filter(Boolean);
         return arr.slice(0, -1).map((val, i) => ({
             name: val.includes(':') ? val.split(':')[0].trim() : `${def + i}`,
             cars: Array.from({ length: (+(arr[i + 1].split(':')[1] || arr[i + 1]) - +(val.split(':')[1] || val)) }, (_, k) => +(val.split(':')[1] || val) + k)
         }));
     };
     const render = (name, lots) => lots.length ? `${name}\n` + lots.map(l => `\n • Sublot ${l.name}\n` + l.cars.map(c => `Xe${c}:`).join('\n')).join('\n') + '\n\n' : '';
-    $('ioArea').value = `${getHeader()}\n\n${render('LINE 1', parseL(getVal('configLine1'), 11))}${render('LINE 2', parseL(getVal('configLine2'), 21))}`.trim() + '\n';
+    $('ioArea').value = `${getHeader()}\n\n${render('LINE 1', parseL(getVal('configLine1') || '1, 10, 16, 21', 11))}${render('LINE 2', parseL(getVal('configLine2') || '22, 32, 34, 45', 21))}`.trim() + '\n';
     pushSave();
 }
 
+// Quản lý trạng thái Undo & Lưu trữ
 function snapshot() {
     const s = { ioArea: $('ioArea').value, zaloInput: $('zaloInput').value, ...H };
     if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed'].forEach(k => { if ($(k)) s[k] = $(k).value; });
@@ -475,7 +471,6 @@ function undo() {
     $('ioArea').value = p.ioArea || ''; $('zaloInput').value = p.zaloInput || '';
     Object.keys(H).forEach(k => setVal(k, p[k] || '')); updateSpeedDisplay(); pushSave();
 }
-
 function pushSave() {
     if (!isInitialized) return;
     const apiUrl = getApiUrl();
@@ -503,12 +498,20 @@ async function pasteVal(id) {
     try { const t = await navigator.clipboard.readText(); if ($(id)) $(id).value = t; else setVal(id, t); pushSave(); } catch {} 
 }
 async function copySchedule() { autoRounds(); await navigator.clipboard.writeText($('ioArea').value); alert("✅ Đã chép lịch!"); }
+
+// Nút Xóa: Chỉ xóa dữ liệu bảng và tin nhắn, TUYỆT ĐỐI không xóa cấu hình Line và Tốc độ
 function clearAll() { 
     if (isViewerOnly) return alert("Bạn không có quyền sửa!");
-    if (confirm("Xóa sạch toàn bộ bảng?")) { refreshMyLock(); snapshot(); $('ioArea').value = $('zaloInput').value = ''; Object.keys(H).forEach(k => setVal(k, '')); pushSave(); } 
+    if (confirm("Xóa sạch toàn bộ bảng?")) { 
+        refreshMyLock(); 
+        snapshot(); 
+        $('ioArea').value = $('zaloInput').value = ''; 
+        ['zaloNote', 'zaloIncident', 'incInput'].forEach(k => setVal(k, '')); 
+        pushSave(); 
+    } 
 }
 
-// Đồng bộ Cloud Realtime 2 chiều với Sheet
+// Đồng bộ Cloud Realtime
 function fetchRemoteData(forcePull = false) {
     const apiUrl = getApiUrl();
     if (!apiUrl) return;
@@ -521,18 +524,19 @@ function fetchRemoteData(forcePull = false) {
 
         if (!isInitialized || forcePull) {
             if (d.ioArea !== undefined && d.ioArea !== '') { $('ioArea').value = d.ioArea; localStorage.setItem('c_ioArea', d.ioArea); }
-            Object.keys(map).forEach(k => { if (d[k] !== undefined) setVal(map[k], d[k]); });
+            Object.keys(map).forEach(k => { 
+                if (d[k] !== undefined && d[k] !== '') setVal(map[k], d[k]); 
+            });
             isInitialized = true; snapshot();
             if (forcePull) alert("✅ Đã đồng bộ lại toàn bộ dữ liệu mới nhất từ Sheet!");
         } else if (isViewerOnly || (!userHasModified && Date.now() - myLastActionTime > 30000)) {
-            // Khi máy đang ở chế độ xem hoặc không gõ phím, tự cập nhật thay đổi trực tiếp từ Sheet
             if (d.ioArea !== undefined && d.ioArea !== $('ioArea').value && d.ioArea !== '') {
                 $('ioArea').value = d.ioArea;
                 localStorage.setItem('c_ioArea', d.ioArea);
             }
-            ['zaloNote', 'zaloIncident', 'incidentInput', 'lineSpeed'].forEach(k => {
+            ['zaloNote', 'zaloIncident', 'incidentInput'].forEach(k => {
                 const mapK = k === 'incidentInput' ? 'incInput' : k;
-                if (d[k] !== undefined) setVal(mapK, d[k]);
+                if (d[k] !== undefined && d[k] !== '') setVal(mapK, d[k]);
             });
         }
         updateSpeedDisplay(); renderLockStatus(); $('syncDot').style.background = '#16a34a';
@@ -542,11 +546,16 @@ function fetchRemoteData(forcePull = false) {
     });
 }
 
+// Khởi chạy hệ thống và khôi phục giá trị mặc định nếu trước đó bị nút Xóa làm rỗng
 window.onload = () => {
     syncDate(true);
     const cachedIO = localStorage.getItem('c_ioArea');
     if (cachedIO) $('ioArea').value = cachedIO;
     Object.keys(H).forEach(k => { const c = localStorage.getItem('c_' + k); if (c) H[k] = c; });
+
+    if (!H.configLine1) H.configLine1 = '1, 10, 16, 21';
+    if (!H.configLine2) H.configLine2 = '22, 32, 34, 45';
+    if (!H.lineSpeed) H.lineSpeed = '120';
 
     $('ioArea').oninput = () => { refreshMyLock(); pushSave(); };
     $('zaloInput').oninput = () => { refreshMyLock(); };
