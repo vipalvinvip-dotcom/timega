@@ -71,9 +71,7 @@
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxp9hlyLO5fzsIc_mwRcqk1Z9AIZkuybxoVGuYJV1v9rQT9taLNQ9_UCgA1CTi5yxXN/exec";
-const TELE_BOT_TOKEN = "8778714722:AAHixOGsUdxzqUCznUF1vmM78OmI6EZfOEU";
-const TELE_ADMIN_ID = "812350114";
+const API_URL = "https://script.google.com/macros/s/AKfycbyHLQ99yD7y4m18OMNlBEwPpOygAX5dsZU-tgIR1mbRkAYDAFpqHEwotk_QGk3lzf0l/exec";
 
 const $ = id => document.getElementById(id);
 const MY_SESSION_ID = 'U_' + Math.random().toString(36).substring(2, 9);
@@ -136,14 +134,17 @@ function renderLockStatus() {
 }
 function forceClaimLock() { refreshMyLock(); pushSave(); alert("⚡ Bạn đã nhận quyền chỉnh sửa thành công!"); }
 
-// Gửi OTP xác thực về Telegram
+// Gửi OTP qua Telegram bằng lệnh POST nền (no-cors) chống lỗi trình duyệt mobile
 async function sendTelegramOTP(otp) {
     const text = `🔔 *HỆ THỐNG GIỜ GÀ*\n🔑 Mã OTP mở khóa Cài đặt: *${otp}*\n⏱️ Mã có hiệu lực trong vòng 3 phút.`;
-    const url = `https://api.telegram.org/bot${TELE_BOT_TOKEN}/sendMessage?chat_id=${TELE_ADMIN_ID}&text=${encodeURIComponent(text)}&parse_mode=Markdown`;
     try {
-        const res = await fetch(url);
-        const data = await res.json();
-        return data && data.ok;
+        await fetch(API_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({ action: "send_otp", text: text })
+        });
+        return true;
     } catch (e) {
         return false;
     }
@@ -162,27 +163,30 @@ async function handleAuthClick() {
     btn.disabled = true;
 
     const sent = await sendTelegramOTP(currentOTP);
+    
     btn.innerText = oldText;
     btn.disabled = false;
 
     if (!sent) {
-        return alert("❌ Lỗi gửi mã về Telegram! Hãy kiểm tra kết nối mạng hoặc đảm bảo bạn đã bấm /start với bot.");
+        return alert("❌ Mất kết nối mạng! Không thể gọi đến máy chủ trung gian.");
     }
 
-    const code = prompt("📲 Mã xác thực 6 số đã được gửi tới Telegram của bạn. Vui lòng nhập mã:");
-    if (!code) return;
+    setTimeout(() => {
+        const code = prompt("📲 Mã xác thực 6 số đang được gửi tới Telegram. Vui lòng nhập mã:");
+        if (!code) return;
 
-    if (Date.now() > otpExpires) {
-        currentOTP = null;
-        return alert("⛔ Mã xác thực đã hết hạn! Vui lòng bấm mở khóa lại.");
-    }
+        if (Date.now() > otpExpires) {
+            currentOTP = null;
+            return alert("⛔ Mã xác thực đã hết hạn (quá 3 phút)!");
+        }
 
-    if (code.trim() === currentOTP) {
-        currentOTP = null;
-        unlockSettings();
-    } else {
-        alert("❌ Mã xác thực không chính xác!");
-    }
+        if (code.trim() === currentOTP) {
+            currentOTP = null;
+            unlockSettings();
+        } else {
+            alert("❌ Mã xác thực không chính xác!");
+        }
+    }, 1000);
 }
 
 function unlockSettings() {
@@ -311,7 +315,6 @@ function applyIncident() {
         const hasR1 = r1.includes('-');
         const hasR2 = r2.includes('-');
 
-        // Trường hợp sự cố diễn ra tại Vòng 1: Dời V1 và tịnh tiến V2 tương ứng
         if (hasR1) {
             const [s1, e1] = r1.split('-').map(toMins);
             if (s1 !== null && e1 !== null) {
@@ -328,7 +331,6 @@ function applyIncident() {
             }
         }
 
-        // Trường hợp sự cố diễn ra tại Vòng 2: Giữ nguyên tuyệt đối Vòng 1, chỉ tịnh tiến Vòng 2
         if (hasR2) {
             const [s2, e2] = r2.split('-').map(toMins);
             if (s2 !== null && e2 !== null) {
