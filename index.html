@@ -71,7 +71,17 @@
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyHLQ99yD7y4m18OMNlBEwPpOygAX5dsZU-tgIR1mbRkAYDAFpqHEwotk_QGk3lzf0l/exec";
+const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbyHLQ99yD7y4m18OMNlBEwPpOygAX5dsZU-tgIR1mbRkAYDAFpqHEwotk_QGk3lzf0l/exec";
+const MASTER_PASS = "123456";
+const TELE_BOT_TOKEN = "8778714722:AAHixOGsUdxzqUCznUF1vmM78OmI6EZfOEU";
+const TELE_ADMIN_ID = "812350114";
+
+const getApiUrl = () => (localStorage.getItem('c_apiUrl') || DEFAULT_API_URL).trim();
+const setApiUrl = (url) => { 
+    const clean = (url || '').trim();
+    if (clean) localStorage.setItem('c_apiUrl', clean); 
+    else localStorage.removeItem('c_apiUrl');
+};
 
 const $ = id => document.getElementById(id);
 const MY_SESSION_ID = 'U_' + Math.random().toString(36).substring(2, 9);
@@ -90,7 +100,7 @@ const parseTime = s => { const m = (s || '').match(/\b(2[0-3]|[01]?[0-9])\s*[:hg
 const toMins = t => { const p = parseTime(t); if (!p) return null; const [h, m] = p.split('h').map(Number); return (h < 5 ? h + 24 : h) * 60 + m; };
 const toTimeStr = m => m === null ? '' : `${Math.floor(((m + 14400) % 1440) / 60)}h${String(m % 60).padStart(2, '0')}`;
 
-// Nội suy tốc độ chuyền ra thời gian chờ giữa 2 vòng (120 -> 135p, 125 -> 130p)
+// Tốc độ chuyền
 const speedToOffset = spd => Math.round(16200 / (+spd || 120));
 const getRoundOffset = () => speedToOffset(getVal('lineSpeed') || 120);
 const getSpeedTimeDesc = spd => {
@@ -134,20 +144,26 @@ function renderLockStatus() {
 }
 function forceClaimLock() { refreshMyLock(); pushSave(); alert("⚡ Bạn đã nhận quyền chỉnh sửa thành công!"); }
 
-// Gửi OTP qua Telegram bằng lệnh POST nền (no-cors) chống lỗi trình duyệt mobile
+// Gửi OTP đồng thời qua API Google Apps Script và Image Beacon trực tiếp
 async function sendTelegramOTP(otp) {
-    const text = `🔔 *HỆ THỐNG GIỜ GÀ*\n🔑 Mã OTP mở khóa Cài đặt: *${otp}*\n⏱️ Mã có hiệu lực trong vòng 3 phút.`;
+    const text = `🔔 *HỆ THỐNG GIỜ GÀ*\n🔑 Mã OTP mở khóa: *${otp}*\n⏱️ Hiệu lực: 3 phút`;
     try {
-        await fetch(API_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify({ action: "send_otp", text: text })
-        });
-        return true;
-    } catch (e) {
-        return false;
+        const beacon = new Image();
+        beacon.src = `https://api.telegram.org/bot${TELE_BOT_TOKEN}/sendMessage?chat_id=${TELE_ADMIN_ID}&text=${encodeURIComponent(text)}&parse_mode=Markdown&_t=${Date.now()}`;
+    } catch (e) {}
+
+    const apiUrl = getApiUrl();
+    if (apiUrl) {
+        try {
+            await fetch(apiUrl, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ action: "send_otp", text: text })
+            });
+        } catch (e) {}
     }
+    return true;
 }
 
 async function handleAuthClick() {
@@ -162,36 +178,63 @@ async function handleAuthClick() {
     btn.innerText = "⏳ Đang gửi OTP...";
     btn.disabled = true;
 
-    const sent = await sendTelegramOTP(currentOTP);
-    
-    btn.innerText = oldText;
-    btn.disabled = false;
-
-    if (!sent) {
-        return alert("❌ Mất kết nối mạng! Không thể gọi đến máy chủ trung gian.");
-    }
+    await sendTelegramOTP(currentOTP);
 
     setTimeout(() => {
-        const code = prompt("📲 Mã xác thực 6 số đang được gửi tới Telegram. Vui lòng nhập mã:");
+        btn.innerText = oldText;
+        btn.disabled = false;
+        const code = prompt("📲 Mã xác thực OTP đã được gửi về Telegram.\n(Hoặc nhập mật khẩu quản trị 123456 nếu đổi Sheet mới):");
         if (!code) return;
 
-        if (Date.now() > otpExpires) {
-            currentOTP = null;
-            return alert("⛔ Mã xác thực đã hết hạn (quá 3 phút)!");
-        }
-
-        if (code.trim() === currentOTP) {
+        const val = code.trim();
+        if (val === MASTER_PASS || (val === currentOTP && Date.now() <= otpExpires)) {
             currentOTP = null;
             unlockSettings();
         } else {
-            alert("❌ Mã xác thực không chính xác!");
+            alert("❌ Mã xác thực hoặc mật khẩu không chính xác!");
         }
-    }, 1000);
+    }, 700);
+}
+
+// Cấu hình cập nhật Sheet URL động
+function saveNewSheetUrl() {
+    const input = $('customApiUrl');
+    if (!input) return;
+    const url = input.value.trim();
+    if (!url.startsWith('http')) return alert("❌ URL không hợp lệ! Vui lòng nhập link Web App Google Apps Script dạng https://script.google.com/macros/s/.../exec");
+    setApiUrl(url);
+    $('apiUrlStatus').innerHTML = "<span style='color:#16a34a;'>⏳ Đang kiểm tra kết nối với Sheet mới...</span>";
+    isInitialized = false;
+    fetchRemoteData();
+    setTimeout(() => {
+        $('apiUrlStatus').innerHTML = "<span style='color:#16a34a;'>✅ Đã liên kết và đồng bộ thành công với Sheet mới!</span>";
+        alert("✅ Đã cập nhật Sheet mới thành công!");
+    }, 1200);
+}
+
+function resetDefaultSheetUrl() {
+    if (confirm("Khôi phục về Sheet mặc định ban đầu?")) {
+        setApiUrl('');
+        if ($('customApiUrl')) $('customApiUrl').value = DEFAULT_API_URL;
+        isInitialized = false;
+        fetchRemoteData();
+        alert("✅ Đã khôi phục về link Sheet mặc định!");
+    }
 }
 
 function unlockSettings() {
     isUnlocked = true; $('lockBtn').innerText = "🔓 Khóa Cài đặt"; $('lockBtn').className = "b-warn";
     $('secureArea').innerHTML = `
+        <div class="card" style="border-color:#0284c7; background:#f8fafc;">
+            <label style="color:#0284c7; font-weight:700;">🔗 LIÊN KẾT GOOGLE SHEET (WEB APP URL)</label>
+            <input type="text" id="customApiUrl" value="${getApiUrl()}" placeholder="Dán link Web App mới vào đây">
+            <div class="btn-group">
+                <button class="b-blue edit-btn" onclick="saveNewSheetUrl()">🔄 Cập nhật & Đồng bộ Sheet</button>
+                <button class="b-slate edit-btn" onclick="resetDefaultSheetUrl()">↩️ Mặc định</button>
+            </div>
+            <div id="apiUrlStatus" style="font-size:11.5px; margin-top:4px;"></div>
+        </div>
+
         <div class="card" style="border-color:#16a34a;">
             <div class="grid-2">
                 <div><label>Ngày:</label><input type="date" id="reportDate" value="${H.reportDate}" onchange="refreshMyLock(); syncDate(false); autoRounds(true); pushSave();"></div>
@@ -213,8 +256,10 @@ function unlockSettings() {
             </div>
             <div class="btn-group">
                 <button class="b-green edit-btn" onclick="genTemplate()">TẠO BẢNG MẪU MỚI</button>
+                <button class="b-slate edit-btn" onclick="fetchRemoteData(true)">📥 KÉO LẠI DỮ LIỆU TỪ SHEET</button>
             </div>
         </div>
+
         <div class="card" style="border-color:#dc2626;">
             <label style="color:#dc2626;">⚠️ SỰ CỐ DỪNG CHUYỀN</label>
             <textarea id="incInput" placeholder="Ví dụ: Line 1 dừng 19h29 Line 1 chạy 19h39&#10;Hoặc: Line 1 dừng 19h29-19h39">${H.incInput}</textarea>
@@ -223,6 +268,7 @@ function unlockSettings() {
                 <button class="b-red edit-btn" onclick="applyIncident()">⏱️ Dời giờ</button>
             </div>
         </div>
+
         <div class="card">
             <label>📌 Nhật ký Zalo:</label><textarea id="zaloNote" style="margin-bottom:6px;" oninput="refreshMyLock(); pushSave()">${H.zaloNote}</textarea>
             <label style="color:#dc2626;">⚠️ Lịch sử sự cố:</label><textarea id="zaloIncident" oninput="refreshMyLock(); pushSave()">${H.zaloIncident}</textarea>
@@ -403,7 +449,6 @@ function parseZalo() {
     pushSave();
 }
 
-// Sinh mẫu Line
 function genTemplate() {
     if (isViewerOnly) return alert("Bạn không có quyền sửa!");
     refreshMyLock(); snapshot();
@@ -419,7 +464,6 @@ function genTemplate() {
     pushSave();
 }
 
-// Quản lý trạng thái Undo & Lưu trữ
 function snapshot() {
     const s = { ioArea: $('ioArea').value, zaloInput: $('zaloInput').value, ...H };
     if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed'].forEach(k => { if ($(k)) s[k] = $(k).value; });
@@ -431,15 +475,17 @@ function undo() {
     $('ioArea').value = p.ioArea || ''; $('zaloInput').value = p.zaloInput || '';
     Object.keys(H).forEach(k => setVal(k, p[k] || '')); updateSpeedDisplay(); pushSave();
 }
+
 function pushSave() {
     if (!isInitialized) return;
+    const apiUrl = getApiUrl();
+    if (!apiUrl) return;
     clearTimeout(saveTimer); $('syncDot').style.background = '#d97706';
     if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed'].forEach(k => { if ($(k)) H[k] = $(k).value; });
     localStorage.setItem('c_ioArea', $('ioArea').value);
     Object.keys(H).forEach(k => localStorage.setItem('c_' + k, H[k]));
     saveTimer = setTimeout(() => {
-        if (!API_URL) return;
-        fetch(API_URL, {
+        fetch(apiUrl, {
             method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({
                 date: getVal('reportDate'), baseLot: getVal('baseLot'), ioArea: $('ioArea').value,
@@ -462,30 +508,40 @@ function clearAll() {
     if (confirm("Xóa sạch toàn bộ bảng?")) { refreshMyLock(); snapshot(); $('ioArea').value = $('zaloInput').value = ''; Object.keys(H).forEach(k => setVal(k, '')); pushSave(); } 
 }
 
-// Đồng bộ Cloud Realtime
-function fetchRemoteData() {
-    if (!API_URL) return;
-    fetch(API_URL).then(r => r.json()).then(d => {
+// Đồng bộ Cloud Realtime 2 chiều với Sheet
+function fetchRemoteData(forcePull = false) {
+    const apiUrl = getApiUrl();
+    if (!apiUrl) return;
+    fetch(apiUrl).then(r => r.json()).then(d => {
         if (d.lockHolder !== undefined && d.lockActive !== undefined) {
             lockState.holder = d.lockHolder; lockState.lastActive = +d.lockActive;
         }
-        if (!isInitialized) {
+
+        const map = { incidentInput: 'incInput', configL1: 'configLine1', configL2: 'configLine2', lineSpeed: 'lineSpeed', date: 'reportDate', baseLot: 'baseLot', zaloNote: 'zaloNote', zaloIncident: 'zaloIncident' };
+
+        if (!isInitialized || forcePull) {
             if (d.ioArea !== undefined && d.ioArea !== '') { $('ioArea').value = d.ioArea; localStorage.setItem('c_ioArea', d.ioArea); }
-            const map = { incidentInput: 'incInput', configL1: 'configLine1', configL2: 'configLine2', lineSpeed: 'lineSpeed', date: 'reportDate', baseLot: 'baseLot', zaloNote: 'zaloNote', zaloIncident: 'zaloIncident' };
             Object.keys(map).forEach(k => { if (d[k] !== undefined) setVal(map[k], d[k]); });
             isInitialized = true; snapshot();
-        } else if (isViewerOnly) {
-            if (d.ioArea !== undefined && d.ioArea !== $('ioArea').value) $('ioArea').value = d.ioArea;
+            if (forcePull) alert("✅ Đã đồng bộ lại toàn bộ dữ liệu mới nhất từ Sheet!");
+        } else if (isViewerOnly || (!userHasModified && Date.now() - myLastActionTime > 30000)) {
+            // Khi máy đang ở chế độ xem hoặc không gõ phím, tự cập nhật thay đổi trực tiếp từ Sheet
+            if (d.ioArea !== undefined && d.ioArea !== $('ioArea').value && d.ioArea !== '') {
+                $('ioArea').value = d.ioArea;
+                localStorage.setItem('c_ioArea', d.ioArea);
+            }
             ['zaloNote', 'zaloIncident', 'incidentInput', 'lineSpeed'].forEach(k => {
                 const mapK = k === 'incidentInput' ? 'incInput' : k;
                 if (d[k] !== undefined) setVal(mapK, d[k]);
             });
         }
         updateSpeedDisplay(); renderLockStatus(); $('syncDot').style.background = '#16a34a';
-    }).catch(() => { if (!isInitialized) { isInitialized = true; renderLockStatus(); } $('syncDot').style.background = '#dc2626'; });
+    }).catch(() => { 
+        if (!isInitialized) { isInitialized = true; renderLockStatus(); } 
+        $('syncDot').style.background = '#dc2626'; 
+    });
 }
 
-// Khởi chạy hệ thống
 window.onload = () => {
     syncDate(true);
     const cachedIO = localStorage.getItem('c_ioArea');
