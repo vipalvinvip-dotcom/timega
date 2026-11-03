@@ -35,8 +35,7 @@
 <body>
 <div class="container">
     <div class="card header">
-        <div><span id="syncDot" class="dot"></span>GIỜ GÀ</div>
-        
+        <div><span id="syncDot" class="dot"></span> GIỜ GÀ</div>
         <div style="display: flex; align-items: center; gap: 5px;">
             <div id="otpInputWrap" class="otp-inline-box">
                 <input type="number" id="inlineOtpInput" class="otp-input" placeholder="Mã OTP" oninput="handleOtpInput(this)">
@@ -83,50 +82,41 @@
 <script>
 const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbyHLQ99yD7y4m18OMNlBEwPpOygAX5dsZU-tgIR1mbRkAYDAFpqHEwotk_QGk3lzf0l/exec";
 const TELE_ADMIN_ID = "812350114";
-const TELE_TOKENS = [
-    "8778714722:AAHix0GsUdxzqUCznUF1vmM780mI6EZf0EU"];
-const getApiUrl = () => (localStorage.getItem('c_apiUrl') || DEFAULT_API_URL).trim();
-const setApiUrl = (url) => { 
-    const clean = (url || '').trim();
-    if (clean) localStorage.setItem('c_apiUrl', clean); 
-    else localStorage.removeItem('c_apiUrl');
-};
+const TELE_TOKEN = "8778714722:AAHix0GsUdxzqUCznUF1vmM780mI6EZf0EU";
 
 const $ = id => document.getElementById(id);
 const MY_SESSION_ID = 'U_' + Math.random().toString(36).substring(2, 9);
+const getApiUrl = () => (localStorage.getItem('c_apiUrl') || DEFAULT_API_URL).trim();
+const setApiUrl = url => {
+    const c = (url || '').trim();
+    if (c) localStorage.setItem('c_apiUrl', c);
+    else localStorage.removeItem('c_apiUrl');
+};
 
 let lockState = { holder: '', lastActive: 0 }, isViewerOnly = true, isInitialized = false, userHasModified = false, myLastActionTime = 0;
-let isUnlocked = false, history = [], saveTimer;
-let currentOTP = null, otpExpires = 0;
+let isUnlocked = false, history = [], saveTimer, currentOTP = null, otpExpires = 0;
 
-const H = { zaloNote: '', zaloIncident: '', incInput: '', configLine1: '', configLine2: '', lineSpeed: '120', reportDate: '', baseLot: '' };
-
+const H = { zaloNote: '', zaloIncident: '', incInput: '', configLine1: '1, 10, 16, 21', configLine2: '22, 32, 34, 45', lineSpeed: '120', reportDate: '', baseLot: '' };
 const getVal = k => isUnlocked && $(k) ? $(k).value : (H[k] || '');
 const setVal = (k, v) => { H[k] = v; if (isUnlocked && $(k)) $(k).value = v; };
 
-// Xử lý thời gian & Chuẩn hóa
 const parseTime = s => { const m = (s || '').match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/i); return m ? `${+m[1]}h${m[2]}` : null; };
 const toMins = t => { const p = parseTime(t); if (!p) return null; const [h, m] = p.split('h').map(Number); return (h < 5 ? h + 24 : h) * 60 + m; };
 const toTimeStr = m => m === null ? '' : `${Math.floor(((m + 14400) % 1440) / 60)}h${String(m % 60).padStart(2, '0')}`;
 
-// Nội suy tốc độ chuyền ra thời gian chờ giữa 2 vòng
 const speedToOffset = spd => Math.round(16200 / (+spd || 120));
-const getRoundOffset = () => speedToOffset(getVal('lineSpeed') || 120);
+const getRoundOffset = () => speedToOffset(getVal('lineSpeed'));
 const getSpeedTimeDesc = spd => {
-    const mins = speedToOffset(spd);
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `${mins}p (${h}h${m > 0 ? String(m).padStart(2, '0') : '00'})`;
+    const m = speedToOffset(spd);
+    return `${m}p (${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')})`;
 };
 function updateSpeedDisplay() {
-    const spd = getVal('lineSpeed') || 120;
-    const desc = getSpeedTimeDesc(spd);
+    const spd = getVal('lineSpeed') || 120, desc = getSpeedTimeDesc(spd);
     if ($('speedTimePreview')) $('speedTimePreview').value = desc;
     if ($('speedBadge')) $('speedBadge').innerText = `${spd} con/p`;
     if ($('intervalBadge')) $('intervalBadge').innerText = desc;
 }
 
-// Xóa nhiễu Biển số, Line, Số xe
 const cleanZaloStr = s => (s || '').replace(/\b(?:bs|biển\s*số|bks|biển)\s*[:\.]?\s*[a-z0-9:\.-]+/gi, ' ').replace(/\b(?:line\s*\d+|l\s*\d+)\s*[:\.]?/gi, ' ');
 const cleanForTime = s => cleanZaloStr(s).replace(/\b(?:xe|x)\s*\d+\s*[:\.]?/gi, ' ');
 
@@ -137,10 +127,12 @@ function syncDate(auto = true) {
 }
 const getHeader = () => `🐓 GÀ ${getVal('reportDate').split('-').reverse().slice(0, 2).join('.')} - LOT ${getVal('baseLot')} 🐓`;
 
-// Quản lý khóa phiên
 function refreshMyLock() {
-    userHasModified = true; myLastActionTime = lockState.lastActive = Date.now();
-    lockState.holder = MY_SESSION_ID; isViewerOnly = false; renderLockStatus();
+    userHasModified = true;
+    myLastActionTime = lockState.lastActive = Date.now();
+    lockState.holder = MY_SESSION_ID;
+    isViewerOnly = false;
+    renderLockStatus();
 }
 function renderLockStatus() {
     isViewerOnly = !!(lockState.holder && lockState.holder !== MY_SESSION_ID && (Date.now() - lockState.lastActive < 35000));
@@ -153,17 +145,14 @@ function renderLockStatus() {
 }
 function forceClaimLock() { refreshMyLock(); pushSave(); alert("⚡ Bạn đã nhận quyền chỉnh sửa thành công!"); }
 
-// Gửi thẳng về Telegram - Chỉ 1 dòng duy nhất, không bị nhân đôi tin nhắn
 function sendTelegramOTP(otp) {
-    const token = "8778714722:AAHix0GsUdxzqUCznUF1vmM780mI6EZf0EU";
     const text = `🔔 HỆ THỐNG GIỜ GÀ\n🔑 Mã OTP mở khóa: ${otp}\n⏱️ Hiệu lực: 3 phút.`;
     const beacon = new Image();
-    beacon.src = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${TELE_ADMIN_ID}&text=${encodeURIComponent(text)}&_t=${Date.now()}`;
+    beacon.src = `https://api.telegram.org/bot${TELE_TOKEN}/sendMessage?chat_id=${TELE_ADMIN_ID}&text=${encodeURIComponent(text)}&_t=${Date.now()}`;
     return true;
 }
 
-// Xử lý gửi OTP và hiện khung nhập nhỏ kế bên
-async function handleAuthClick() {
+function handleAuthClick() {
     if (isViewerOnly) return alert("Bạn đang ở chế độ xem, không thể mở Cài đặt!");
     if (isUnlocked) return lockSettings();
 
@@ -185,44 +174,34 @@ async function handleAuthClick() {
     }, 500);
 }
 
-// Kiểm tra khi gõ hoặc dán vào ô OTP
 function handleOtpInput(input) {
-    if (input.value && input.value.length >= 6) {
-        submitOtp();
-    }
+    if (input.value && input.value.length >= 6) submitOtp();
 }
 
 function submitOtp() {
-    const input = $('inlineOtpInput');
-    const val = (input ? input.value : '').trim();
+    const input = $('inlineOtpInput'), val = (input ? input.value : '').trim();
     if (!val) return;
-
     if (Date.now() > otpExpires) {
         currentOTP = null;
         cancelOtp();
         return alert("⛔ Mã OTP đã hết hạn! Vui lòng bấm nhận mã mới.");
     }
-
     if (val === currentOTP) {
         currentOTP = null;
         cancelOtp();
         unlockSettings();
     } else {
         alert("❌ Mã OTP không chính xác!");
-        if (input) {
-            input.value = '';
-            input.focus();
-        }
+        if (input) { input.value = ''; input.focus(); }
     }
 }
 
 function cancelOtp() {
     $('otpInputWrap').style.display = 'none';
     if ($('inlineOtpInput')) $('inlineOtpInput').value = '';
-    $('lockBtn').innerText = isUnlocked ? "🔓 Khóa Cài đặt" : "🔒 Mở khóa Cài đặt";
+    $('lockBtn').innerText = isUnlocked ? "🔓 Khóa Cài đặt" : "Cài đặt";
 }
 
-// Cập nhật link Sheet mới trực tiếp trên giao diện
 function saveNewSheetUrl() {
     const input = $('customApiUrl');
     if (!input) return;
@@ -249,7 +228,9 @@ function resetDefaultSheetUrl() {
 }
 
 function unlockSettings() {
-    isUnlocked = true; $('lockBtn').innerText = "🔓 Khóa Cài đặt"; $('lockBtn').className = "b-warn";
+    isUnlocked = true;
+    $('lockBtn').innerText = "🔓 Khóa Cài đặt";
+    $('lockBtn').className = "b-warn";
     $('otpInputWrap').style.display = 'none';
     $('secureArea').innerHTML = `
         <div class="card" style="border-color:#0284c7; background:#f8fafc;">
@@ -261,7 +242,6 @@ function unlockSettings() {
             </div>
             <div id="apiUrlStatus" style="font-size:11.5px; margin-top:4px;"></div>
         </div>
-
         <div class="card" style="border-color:#16a34a;">
             <div class="grid-2">
                 <div><label>Ngày:</label><input type="date" id="reportDate" value="${H.reportDate}" onchange="refreshMyLock(); H.reportDate = this.value; syncDate(false); autoRounds(true); pushSave();"></div>
@@ -286,7 +266,6 @@ function unlockSettings() {
                 <button class="b-slate edit-btn" onclick="fetchRemoteData(true)">📥 KÉO LẠI DỮ LIỆU TỪ SHEET</button>
             </div>
         </div>
-
         <div class="card" style="border-color:#dc2626;">
             <label style="color:#dc2626;">⚠️ SỰ CỐ DỪNG CHUYỀN</label>
             <textarea id="incInput" placeholder="Ví dụ: Line 1 dừng 19h29 Line 1 chạy 19h39&#10;Hoặc: Line 1 dừng 19h29-19h39">${H.incInput}</textarea>
@@ -295,7 +274,6 @@ function unlockSettings() {
                 <button class="b-red edit-btn" onclick="applyIncident()">⏱️ Dời giờ</button>
             </div>
         </div>
-
         <div class="card">
             <label>📌 Nhật ký Zalo:</label><textarea id="zaloNote" style="margin-bottom:6px;" oninput="refreshMyLock(); pushSave()">${H.zaloNote}</textarea>
             <label style="color:#dc2626;">⚠️ Lịch sử sự cố:</label><textarea id="zaloIncident" oninput="refreshMyLock(); pushSave()">${H.zaloIncident}</textarea>
@@ -305,12 +283,14 @@ function unlockSettings() {
 
 function lockSettings() {
     if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed', 'reportDate', 'baseLot'].forEach(k => { if ($(k)) H[k] = $(k).value; });
-    isUnlocked = false; $('secureArea').innerHTML = ''; $('lockBtn').innerText = "🔒 Mở khóa Cài đặt"; $('lockBtn').className = "b-slate";
+    isUnlocked = false;
+    $('secureArea').innerHTML = '';
+    $('lockBtn').innerText = "Cài đặt";
+    $('lockBtn').className = "b-slate edit-btn";
     cancelOtp();
     updateSpeedDisplay();
 }
 
-// Chuyển đổi dòng & Vòng 2
 function transformRows(fn) {
     let line = 1;
     $('ioArea').value = $('ioArea').value.split('\n').map(r => {
@@ -335,7 +315,6 @@ function autoRounds(forceRecalc = false) {
     $('ioArea').value = `${getHeader()}\n\n${$('ioArea').value.split('\n').filter(l => !l.includes('🐓')).join('\n').trim()}\n`;
 }
 
-// Bóc tách sự cố thông minh qua text
 function parseIncident(raw) {
     if (!raw) return null;
     let targetLine = 1;
@@ -367,56 +346,41 @@ function parseIncident(raw) {
     if (sM === null || eM === null) return null;
     if (eM < sM) eM += 1440;
     const shift = eM - sM;
-    if (shift <= 0) return null;
-    return { targetLine, sM, eM, shift };
+    return shift > 0 ? { targetLine, sM, eM, shift } : null;
 }
 
-// Xử lý sự cố dời giờ
 function applyIncident() {
     if (isViewerOnly) return alert("Bạn không có quyền sửa!");
-    const raw = getVal('incInput').trim();
-    const inc = parseIncident(raw);
+    const raw = getVal('incInput').trim(), inc = parseIncident(raw);
     if (!inc) return alert("Cú pháp ví dụ:\nLine 1 dừng 19h29 Line 1 chạy 19h39\nhoặc: Line 1 dừng 19h29-19h39");
     
-    const { targetLine, sM, eM, shift } = inc;
-    const offset = getRoundOffset();
-
+    const { targetLine, sM, eM, shift } = inc, offset = getRoundOffset();
     refreshMyLock(); snapshot();
 
     transformRows((pfx, car, body, line) => {
         if (line !== targetLine) return `${pfx}${body}`;
         let [r1 = '', r2 = ''] = body.split(' - ').map(s => s.trim());
-        const hasR1 = r1.includes('-');
-        const hasR2 = r2.includes('-');
+        const hasR1 = r1.includes('-'), hasR2 = r2.includes('-');
 
         if (hasR1) {
             const [s1, e1] = r1.split('-').map(toMins);
-            if (s1 !== null && e1 !== null) {
-                if (s1 >= sM || (sM >= s1 && sM <= e1)) {
-                    const newS1 = (s1 >= sM) ? s1 + shift : s1;
-                    const newE1 = e1 + shift;
-                    r1 = `${toTimeStr(newS1)}-${toTimeStr(newE1)}`;
-                    
-                    const newS2 = newS1 + offset;
-                    const newE2 = newS2 + (newE1 - newS1);
-                    r2 = `${toTimeStr(newS2)}-${toTimeStr(newE2)}`;
-                    return `${pfx}${r1} - ${r2}`;
-                }
+            if (s1 !== null && e1 !== null && (s1 >= sM || (sM >= s1 && sM <= e1))) {
+                const newS1 = (s1 >= sM) ? s1 + shift : s1, newE1 = e1 + shift;
+                r1 = `${toTimeStr(newS1)}-${toTimeStr(newE1)}`;
+                const newS2 = newS1 + offset, newE2 = newS2 + (newE1 - newS1);
+                r2 = `${toTimeStr(newS2)}-${toTimeStr(newE2)}`;
+                return `${pfx}${r1} - ${r2}`;
             }
         }
 
         if (hasR2) {
             const [s2, e2] = r2.split('-').map(toMins);
-            if (s2 !== null && e2 !== null) {
-                if (s2 >= sM || (sM >= s2 && sM <= e2)) {
-                    const newS2 = (s2 >= sM) ? s2 + shift : s2;
-                    const newE2 = e2 + shift;
-                    r2 = `${toTimeStr(newS2)}-${toTimeStr(newE2)}`;
-                    return `${pfx}${r1} - ${r2}`;
-                }
+            if (s2 !== null && e2 !== null && (s2 >= sM || (sM >= s2 && sM <= e2))) {
+                const newS2 = (s2 >= sM) ? s2 + shift : s2, newE2 = e2 + shift;
+                r2 = `${toTimeStr(newS2)}-${toTimeStr(newE2)}`;
+                return `${pfx}${r1} - ${r2}`;
             }
         }
-
         return `${pfx}${r1}${r2 ? ' - ' + r2 : ''}`;
     });
 
@@ -426,7 +390,6 @@ function applyIncident() {
     alert(`✅ Đã dời Line ${targetLine} thêm ${shift} phút (Dừng từ ${toTimeStr(sM)} đến ${toTimeStr(eM)})!`);
 }
 
-// Bóc tách tin Zalo
 function parseZalo() {
     if (isViewerOnly) return alert("Đang có người khác nhập liệu, bạn không thể sửa!");
     const raw = $('zaloInput').value.trim();
@@ -442,8 +405,7 @@ function parseZalo() {
         if (/\b(l2|line\s*2)\b/i.test(cl)) ctxLine = 2;
         else if (/\b(l1|line\s*1)\b/i.test(cl)) ctxLine = 1;
 
-        const clean = cleanZaloStr(cl);
-        const forTime = cleanForTime(cl);
+        const clean = cleanZaloStr(cl), forTime = cleanForTime(cl);
         let times = (forTime.match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime);
         if (!times.length) {
             const near = clauses.slice(i + 1).concat(clauses.slice(0, i)).find(s => parseTime(cleanForTime(s)));
@@ -503,7 +465,6 @@ function undo() {
     $('ioArea').value = p.ioArea || ''; $('zaloInput').value = p.zaloInput || '';
     Object.keys(H).forEach(k => setVal(k, p[k] || '')); updateSpeedDisplay(); pushSave();
 }
-
 function pushSave() {
     if (!isInitialized) return;
     const apiUrl = getApiUrl();
@@ -532,7 +493,6 @@ async function pasteVal(id) {
 }
 async function copySchedule() { autoRounds(); await navigator.clipboard.writeText($('ioArea').value); alert("✅ Đã chép lịch!"); }
 
-// Nút Xóa: Chỉ xóa dữ liệu chạy xe, KHÔNG xóa cấu hình Line và Tốc độ
 function clearAll() { 
     if (isViewerOnly) return alert("Bạn không có quyền sửa!");
     if (confirm("Xóa sạch toàn bộ bảng?")) { 
@@ -544,7 +504,6 @@ function clearAll() {
     } 
 }
 
-// Đồng bộ Cloud Realtime
 function fetchRemoteData(forcePull = false) {
     const apiUrl = getApiUrl();
     if (!apiUrl) return;
@@ -579,7 +538,6 @@ function fetchRemoteData(forcePull = false) {
     });
 }
 
-// Khởi chạy hệ thống và bảo vệ giá trị mặc định
 window.onload = () => {
     syncDate(true);
     const cachedIO = localStorage.getItem('c_ioArea');
