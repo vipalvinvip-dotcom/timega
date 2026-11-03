@@ -35,7 +35,7 @@
 <body>
 <div class="container">
     <div class="card header">
-        <div><span id="syncDot" class="dot"></span> HỆ THỐNG GIỜ GÀ</div>
+        <div><span id="syncDot" class="dot"></span>GIỜ GÀ</div>
         
         <div style="display: flex; align-items: center; gap: 5px;">
             <div id="otpInputWrap" class="otp-inline-box">
@@ -43,7 +43,7 @@
                 <button class="b-green" style="flex:unset; padding: 5px 8px; font-size: 12px;" onclick="submitOtp()">Mở</button>
                 <button class="b-slate" style="flex:unset; padding: 5px 6px; font-size: 11px;" onclick="cancelOtp()">✕</button>
             </div>
-            <button id="lockBtn" class="b-slate edit-btn" style="flex:unset; padding: 5px 10px;" onclick="handleAuthClick()">🔒 Mở khóa Cài đặt</button>
+            <button id="lockBtn" class="b-slate edit-btn" style="flex:unset; padding: 5px 10px;" onclick="handleAuthClick()">Cài đặt</button>
         </div>
     </div>
 
@@ -54,7 +54,7 @@
 
     <div class="speed-bar">
         <span>⚡ Tốc độ chuyền: <strong id="speedBadge">120 con/p</strong></span>
-        <span>⏱️ Vòng 2 cách: <strong id="intervalBadge">135p (2h15)</strong></span>
+        <span> - <strong id="intervalBadge">135p (2h15)</strong></span>
     </div>
 
     <div id="secureArea" style="display: flex; flex-direction: column; gap: 8px;"></div>
@@ -71,11 +71,11 @@
     </div>
 
     <div class="card">
-        <label style="color: #0284c7;">⚡ XỬ LÝ TIN NHẮN ZALO</label>
+        <label style="color: #0284c7;">⚡ XỬ LÝ TIN NHẮN</label>
         <textarea id="zaloInput" placeholder="Ví dụ: Hết xe 26&#10;Treo xe 27 line 2, BS 793: 17:58"></textarea>
         <div class="btn-group">
-            <button class="b-slate edit-btn" onclick="pasteVal('zaloInput')">📋 Dán</button>
-            <button class="b-blue edit-btn" onclick="parseZalo()">⚡ Phân tích & Ghi nhận</button>
+            <button class="b-slate edit-btn" onclick="pasteVal('zaloInput')">Dán</button>
+            <button class="b-blue edit-btn" onclick="parseZalo()">Xử Lý</button>
         </div>
     </div>
 </div>
@@ -84,10 +84,7 @@
 const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbyHLQ99yD7y4m18OMNlBEwPpOygAX5dsZU-tgIR1mbRkAYDAFpqHEwotk_QGk3lzf0l/exec";
 const TELE_ADMIN_ID = "812350114";
 const TELE_TOKENS = [
-    "8778714722:AAHix0GsUdxzqUCznUF1vmM780mI6EZf0EU",
-    "8778714722:AAHixOGsUdxzqUCznUF1vmM78OmI6EZfOEU"
-];
-
+    "8778714722:AAHix0GsUdxzqUCznUF1vmM780mI6EZf0EU"];
 const getApiUrl = () => (localStorage.getItem('c_apiUrl') || DEFAULT_API_URL).trim();
 const setApiUrl = (url) => { 
     const clean = (url || '').trim();
@@ -102,7 +99,7 @@ let lockState = { holder: '', lastActive: 0 }, isViewerOnly = true, isInitialize
 let isUnlocked = false, history = [], saveTimer;
 let currentOTP = null, otpExpires = 0;
 
-const H = { zaloNote: '', zaloIncident: '', incInput: '', configLine1: '1, 10, 16, 21', configLine2: '22, 32, 34, 45', lineSpeed: '120', reportDate: '', baseLot: '' };
+const H = { zaloNote: '', zaloIncident: '', incInput: '', configLine1: '', configLine2: '', lineSpeed: '120', reportDate: '', baseLot: '' };
 
 const getVal = k => isUnlocked && $(k) ? $(k).value : (H[k] || '');
 const setVal = (k, v) => { H[k] = v; if (isUnlocked && $(k)) $(k).value = v; };
