@@ -26,6 +26,7 @@
         .lock-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 5px; font-size: 12.5px; font-weight: 600; }
         .s-edit { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
         .s-view { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+        .speed-bar { display: flex; justify-content: space-between; align-items: center; background: #f0f9ff; color: #0369a1; padding: 6px 10px; border-radius: 5px; font-weight: 600; font-size: 12px; border: 1px solid #bae6fd; }
         .btn-claim { background: #ea580c; color: #fff; padding: 3px 8px; border-radius: 4px; border: none; font-size: 11.5px; cursor: pointer; }
     </style>
 </head>
@@ -39,6 +40,11 @@
     <div id="lockStatusBar" class="lock-bar s-view">
         <span id="lockStatusText">⏳ Đang đồng bộ dữ liệu đám mây...</span>
         <button id="claimBtn" class="btn-claim" style="display:none;" onclick="forceClaimLock()">⚡ Chiếm quyền sửa</button>
+    </div>
+
+    <div class="speed-bar">
+        <span>⚡ Tốc độ chuyền: <strong id="speedBadge">120 con/p</strong></span>
+        <span>⏱️ Vòng 2 cách: <strong id="intervalBadge">135p (2h15)</strong></span>
     </div>
 
     <div id="secureArea" style="display: flex; flex-direction: column; gap: 8px;"></div>
@@ -72,17 +78,34 @@ const MY_SESSION_ID = 'U_' + Math.random().toString(36).substring(2, 9);
 
 let lockState = { holder: '', lastActive: 0 }, isViewerOnly = true, isInitialized = false, userHasModified = false, myLastActionTime = 0;
 let isUnlocked = false, history = [], saveTimer;
-const H = { zaloNote: '', zaloIncident: '', incInput: '', configLine1: '1, 10, 16, 21', configLine2: '22, 32, 34, 45', reportDate: '', baseLot: '', customHash: '' };
+const H = { zaloNote: '', zaloIncident: '', incInput: '', configLine1: '1, 10, 16, 21', configLine2: '22, 32, 34, 45', lineSpeed: '120', reportDate: '', baseLot: '', customHash: '' };
 
 const getVal = k => isUnlocked && $(k) ? $(k).value : (H[k] || '');
 const setVal = (k, v) => { H[k] = v; if (isUnlocked && $(k)) $(k).value = v; };
 
-// Xử lý thời gian & Chuẩn hóa
+// Tính toán thời gian & Chuẩn hóa
 const parseTime = s => { const m = (s || '').match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/i); return m ? `${+m[1]}h${m[2]}` : null; };
 const toMins = t => { const p = parseTime(t); if (!p) return null; const [h, m] = p.split('h').map(Number); return (h < 5 ? h + 24 : h) * 60 + m; };
 const toTimeStr = m => m === null ? '' : `${Math.floor(((m + 14400) % 1440) / 60)}h${String(m % 60).padStart(2, '0')}`;
 
-// Xóa nhiễu Biển số, Line, Số xe kèm dấu ':' để chống lệch định dạng giờ
+// Nội suy tốc độ chuyền ra thời gian chờ giữa 2 vòng (Dung lượng 16.200 móc: 120 -> 135p, 125 -> 130p)
+const speedToOffset = spd => Math.round(16200 / (+spd || 120));
+const getRoundOffset = () => speedToOffset(getVal('lineSpeed') || 120);
+const getSpeedTimeDesc = spd => {
+    const mins = speedToOffset(spd);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${mins}p (${h}h${m > 0 ? String(m).padStart(2, '0') : '00'})`;
+};
+function updateSpeedDisplay() {
+    const spd = getVal('lineSpeed') || 120;
+    const desc = getSpeedTimeDesc(spd);
+    if ($('speedTimePreview')) $('speedTimePreview').value = desc;
+    if ($('speedBadge')) $('speedBadge').innerText = `${spd} con/p`;
+    if ($('intervalBadge')) $('intervalBadge').innerText = desc;
+}
+
+// Lọc nhiễu
 const cleanZaloStr = s => (s || '').replace(/\b(?:bs|biển\s*số|bks|biển)\s*[:\.]?\s*[a-z0-9:\.-]+/gi, ' ').replace(/\b(?:line\s*\d+|l\s*\d+)\s*[:\.]?/gi, ' ');
 const cleanForTime = s => cleanZaloStr(s).replace(/\b(?:xe|x)\s*\d+\s*[:\.]?/gi, ' ');
 
@@ -109,7 +132,7 @@ function renderLockStatus() {
 }
 function forceClaimLock() { refreshMyLock(); pushSave(); alert("⚡ Bạn đã nhận quyền chỉnh sửa thành công!"); }
 
-// Bảo mật SHA-256
+// Bảo mật
 async function sha256(msg) {
     const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
     return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
@@ -139,25 +162,51 @@ async function changePassword() {
 function unlockSettings() {
     isUnlocked = true; $('lockBtn').innerText = "🔓 Khóa Cài đặt"; $('lockBtn').className = "b-warn";
     $('secureArea').innerHTML = `
-        <div class="card" style="border-color:#16a34a;"><div class="grid-2">
-            <div><label>Ngày:</label><input type="date" id="reportDate" value="${H.reportDate}" onchange="refreshMyLock(); syncDate(false); autoRounds(); pushSave();"></div>
-            <div><label>Lot:</label><input type="number" id="baseLot" value="${H.baseLot}" readonly></div>
-        </div><div class="grid-2">
-            <div><label>Line 1:</label><input type="text" id="configLine1" value="${H.configLine1}" oninput="refreshMyLock(); pushSave()"></div>
-            <div><label>Line 2:</label><input type="text" id="configLine2" value="${H.configLine2}" oninput="refreshMyLock(); pushSave()"></div>
-        </div><div class="btn-group"><button class="b-green edit-btn" onclick="genTemplate()">TẠO BẢNG MẪU MỚI</button><button class="b-slate edit-btn" onclick="changePassword()">🔑 ĐỔI MẬT KHẨU</button></div></div>
-        <div class="card" style="border-color:#dc2626;"><label style="color:#dc2626;">⚠️ SỰ CỐ DỪNG CHUYỀN</label><textarea id="incInput" placeholder="Line 1 dừng 19h29-19h39">${H.incInput}</textarea>
-            <div class="btn-group"><button class="b-slate edit-btn" onclick="pasteVal('incInput')">📋 Dán</button><button class="b-red edit-btn" onclick="applyIncident()">⏱️ Dời giờ</button></div></div>
-        <div class="card"><label>📌 Nhật ký Zalo:</label><textarea id="zaloNote" style="margin-bottom:6px;" oninput="refreshMyLock(); pushSave()">${H.zaloNote}</textarea>
-            <label style="color:#dc2626;">⚠️ Lịch sử sự cố:</label><textarea id="zaloIncident" oninput="refreshMyLock(); pushSave()">${H.zaloIncident}</textarea></div>`;
-    snapshot(); renderLockStatus();
+        <div class="card" style="border-color:#16a34a;">
+            <div class="grid-2">
+                <div><label>Ngày:</label><input type="date" id="reportDate" value="${H.reportDate}" onchange="refreshMyLock(); syncDate(false); autoRounds(true); pushSave();"></div>
+                <div><label>Lot:</label><input type="number" id="baseLot" value="${H.baseLot}" readonly></div>
+            </div>
+            <div class="grid-2">
+                <div>
+                    <label>Tốc độ Line (con/phút):</label>
+                    <input type="number" id="lineSpeed" value="${H.lineSpeed || 120}" oninput="refreshMyLock(); updateSpeedDisplay(); autoRounds(true); pushSave();" placeholder="120">
+                </div>
+                <div>
+                    <label>Thời gian vòng 2:</label>
+                    <input type="text" id="speedTimePreview" value="${getSpeedTimeDesc(H.lineSpeed || 120)}" readonly style="background:#f1f5f9; font-weight:bold; color:#0284c7;">
+                </div>
+            </div>
+            <div class="grid-2">
+                <div><label>Line 1:</label><input type="text" id="configLine1" value="${H.configLine1}" oninput="refreshMyLock(); pushSave()"></div>
+                <div><label>Line 2:</label><input type="text" id="configLine2" value="${H.configLine2}" oninput="refreshMyLock(); pushSave()"></div>
+            </div>
+            <div class="btn-group">
+                <button class="b-green edit-btn" onclick="genTemplate()">TẠO BẢNG MẪU MỚI</button>
+                <button class="b-slate edit-btn" onclick="changePassword()">🔑 ĐỔI MẬT KHẨU</button>
+            </div>
+        </div>
+        <div class="card" style="border-color:#dc2626;">
+            <label style="color:#dc2626;">⚠️ SỰ CỐ DỪNG CHUYỀN</label>
+            <textarea id="incInput" placeholder="Ví dụ: Line 1 dừng 19h29 Line 1 chạy 19h39&#10;Hoặc: l2 dừng 14:15 kẹt xích l2 chạy 14:25">${H.incInput}</textarea>
+            <div class="btn-group">
+                <button class="b-slate edit-btn" onclick="pasteVal('incInput')">📋 Dán</button>
+                <button class="b-red edit-btn" onclick="applyIncident()">⏱️ Dời giờ</button>
+            </div>
+        </div>
+        <div class="card">
+            <label>📌 Nhật ký Zalo:</label><textarea id="zaloNote" style="margin-bottom:6px;" oninput="refreshMyLock(); pushSave()">${H.zaloNote}</textarea>
+            <label style="color:#dc2626;">⚠️ Lịch sử sự cố:</label><textarea id="zaloIncident" oninput="refreshMyLock(); pushSave()">${H.zaloIncident}</textarea>
+        </div>`;
+    snapshot(); renderLockStatus(); updateSpeedDisplay();
 }
 function lockSettings() {
-    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'reportDate', 'baseLot'].forEach(k => { if ($(k)) H[k] = $(k).value; });
+    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed', 'reportDate', 'baseLot'].forEach(k => { if ($(k)) H[k] = $(k).value; });
     isUnlocked = false; $('secureArea').innerHTML = ''; $('lockBtn').innerText = "🔒 Mở khóa Cài đặt"; $('lockBtn').className = "b-slate";
+    updateSpeedDisplay();
 }
 
-// Chuyển đổi dòng & Vòng 2
+// Xử lý dòng & Vòng 2
 function transformRows(fn) {
     let line = 1;
     $('ioArea').value = $('ioArea').value.split('\n').map(r => {
@@ -166,19 +215,117 @@ function transformRows(fn) {
         return m ? fn(m[1], +m[2], m[3].trim(), line, r) : r;
     }).join('\n');
 }
-function autoRounds() {
+
+function autoRounds(forceRecalc = false) {
+    const offset = getRoundOffset();
     transformRows((pfx, car, body) => {
         let [r1 = '', r2 = ''] = body.split(' - ').map(s => s.trim());
         if (r1.includes('-')) {
             const [s, e] = r1.split('-').map(toMins);
-            if (s !== null && e !== null && !r2.includes('-')) r2 = `${toTimeStr(s + 135)}-${toTimeStr(s + 135 + e - s)}`;
+            if (s !== null && e !== null && (forceRecalc || !r2.includes('-'))) {
+                r2 = `${toTimeStr(s + offset)}-${toTimeStr(s + offset + e - s)}`;
+            }
         }
         return `${pfx}${r1}${r2 ? ' - ' + r2 : ''}`;
     });
     $('ioArea').value = `${getHeader()}\n\n${$('ioArea').value.split('\n').filter(l => !l.includes('🐓')).join('\n').trim()}\n`;
 }
 
-// Phân tích Zalo theo mệnh đề ngữ cảnh thông minh
+// Nhận diện sự cố thông minh qua text
+function parseIncident(raw) {
+    if (!raw) return null;
+    let targetLine = 1;
+    if (/\b(?:line\s*2|l2|chuy[ềe]n\s*2)\b/i.test(raw)) targetLine = 2;
+    else if (/\b(?:line\s*1|l1|chuy[ềe]n\s*1)\b/i.test(raw)) targetLine = 1;
+
+    let sM = null, eM = null;
+    const dungMatch = raw.match(/(?:dừng|dung|stop|nghỉ|nghi)[^\d:]*([0-2]?[0-9]\s*[:hgp\.]\s*[0-5][0-9])/i);
+    const chayMatch = raw.match(/(?:chạy|chay|run|start|hoạt động|hoat dong)[^\d:]*([0-2]?[0-9]\s*[:hgp\.]\s*[0-5][0-9])/i);
+
+    if (dungMatch && chayMatch) {
+        sM = toMins(parseTime(dungMatch[1]));
+        eM = toMins(parseTime(chayMatch[1]));
+    }
+    if (sM === null || eM === null) {
+        const rangeMatch = raw.match(/([0-2]?[0-9]\s*[:hgp\.]\s*[0-5][0-9])\s*(?:-|\bđến\b|\bden\b|\btới\b|\btoi\b)\s*([0-2]?[0-9]\s*[:hgp\.]\s*[0-5][0-9])/i);
+        if (rangeMatch) {
+            sM = toMins(parseTime(rangeMatch[1]));
+            eM = toMins(parseTime(rangeMatch[2]));
+        }
+    }
+    if (sM === null || eM === null) {
+        const allTimes = (cleanForTime(raw).match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime);
+        if (allTimes.length >= 2) {
+            sM = toMins(allTimes[0]);
+            eM = toMins(allTimes[1]);
+        }
+    }
+    if (sM === null || eM === null) return null;
+    if (eM < sM) eM += 1440;
+    const shift = eM - sM;
+    if (shift <= 0) return null;
+    return { targetLine, sM, eM, shift };
+}
+
+// Xử lý sự cố dời giờ
+function applyIncident() {
+    if (isViewerOnly) return alert("Bạn không có quyền sửa!");
+    const raw = getVal('incInput').trim();
+    const inc = parseIncident(raw);
+    if (!inc) return alert("Cú pháp ví dụ:\nLine 1 dừng 19h29 Line 1 chạy 19h39\nhoặc: Line 1 dừng 19h29-19h39");
+    
+    const { targetLine, sM, eM, shift } = inc;
+    const offset = getRoundOffset();
+
+    refreshMyLock(); snapshot();
+
+    transformRows((pfx, car, body, line) => {
+        if (line !== targetLine) return `${pfx}${body}`;
+        let [r1 = '', r2 = ''] = body.split(' - ').map(s => s.trim());
+        const hasR1 = r1.includes('-');
+        const hasR2 = r2.includes('-');
+
+        // Kiểm tra Vòng 1
+        if (hasR1) {
+            const [s1, e1] = r1.split('-').map(toMins);
+            if (s1 !== null && e1 !== null) {
+                // Sự cố rơi vào Vòng 1: Dời V1 và tự động dời V2 theo chuẩn tốc độ
+                if (s1 >= sM || (sM >= s1 && sM <= e1)) {
+                    const newS1 = (s1 >= sM) ? s1 + shift : s1;
+                    const newE1 = e1 + shift;
+                    r1 = `${toTimeStr(newS1)}-${toTimeStr(newE1)}`;
+                    
+                    const newS2 = newS1 + offset;
+                    const newE2 = newS2 + (newE1 - newS1);
+                    r2 = `${toTimeStr(newS2)}-${toTimeStr(newE2)}`;
+                    return `${pfx}${r1} - ${r2}`;
+                }
+            }
+        }
+
+        // Sự cố rơi vào Vòng 2 (Vòng 1 đã chạy xong hoặc kết thúc trước giờ dừng): Giữ nguyên Vòng 1, chỉ dời Vòng 2
+        if (hasR2) {
+            const [s2, e2] = r2.split('-').map(toMins);
+            if (s2 !== null && e2 !== null) {
+                if (s2 >= sM || (sM >= s2 && sM <= e2)) {
+                    const newS2 = (s2 >= sM) ? s2 + shift : s2;
+                    const newE2 = e2 + shift;
+                    r2 = `${toTimeStr(newS2)}-${toTimeStr(newE2)}`;
+                    return `${pfx}${r1} - ${r2}`;
+                }
+            }
+        }
+
+        return `${pfx}${r1}${r2 ? ' - ' + r2 : ''}`;
+    });
+
+    setVal('zaloIncident', (getVal('zaloIncident') ? getVal('zaloIncident') + '\n' : '') + `${raw} (+${shift}p)`);
+    setVal('incInput', '');
+    pushSave();
+    alert(`✅ Đã dời Line ${targetLine} thêm ${shift} phút (Dừng từ ${toTimeStr(sM)} đến ${toTimeStr(eM)})!`);
+}
+
+// Bóc tách tin Zalo
 function parseZalo() {
     if (isViewerOnly) return alert("Đang có người khác nhập liệu, bạn không thể sửa!");
     const raw = $('zaloInput').value.trim();
@@ -229,30 +376,6 @@ function parseZalo() {
     pushSave();
 }
 
-// Xử lý sự cố dời giờ
-function applyIncident() {
-    if (isViewerOnly) return alert("Bạn không có quyền sửa!");
-    const raw = getVal('incInput').trim(), times = (cleanForTime(raw).match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime);
-    if (times.length < 2) return alert("Cú pháp chuẩn: Line 1 dừng 19h29-19h39");
-    const target = /\b(l2|line\s*2)\b/i.test(raw) ? 2 : 1;
-    let sM = toMins(times[0]), eM = toMins(times[1]); if (eM < sM) eM += 1440;
-    const shift = eM - sM; if (shift <= 0) return alert("Giờ kết thúc phải > bắt đầu!");
-    
-    refreshMyLock(); snapshot();
-    transformRows((pfx, car, body, line) => {
-        if (line !== target) return `${pfx}${body}`;
-        const shiftSeg = seg => {
-            if (!seg.includes('-')) return seg;
-            const [s, e] = seg.split('-').map(toMins);
-            return (s !== null && e !== null && (s >= sM || (sM >= s && sM <= e))) ? `${toTimeStr(s >= sM ? s + shift : s)}-${toTimeStr(e + shift)}` : seg;
-        };
-        const [r1 = '', r2 = ''] = body.split(' - ');
-        return `${pfx}${shiftSeg(r1)}${r2 ? ' - ' + shiftSeg(r2) : ''}`;
-    });
-    setVal('zaloIncident', (getVal('zaloIncident') ? getVal('zaloIncident') + '\n' : '') + `${raw} (+${shift}p)`);
-    setVal('incInput', ''); pushSave(); alert(`✅ Đã dời Line ${target} thêm ${shift} phút!`);
-}
-
 // Sinh mẫu Line
 function genTemplate() {
     if (isViewerOnly) return alert("Bạn không có quyền sửa!");
@@ -269,22 +392,22 @@ function genTemplate() {
     pushSave();
 }
 
-// Quản lý trạng thái Undo & Lưu trữ
+// Lịch sử & Đồng bộ Cloud
 function snapshot() {
     const s = { ioArea: $('ioArea').value, zaloInput: $('zaloInput').value, ...H };
-    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2'].forEach(k => { if ($(k)) s[k] = $(k).value; });
+    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed'].forEach(k => { if ($(k)) s[k] = $(k).value; });
     if (JSON.stringify(history.at(-1)) !== JSON.stringify(s)) { history.push(s); if (history.length > 25) history.shift(); }
 }
 function undo() {
     if (isViewerOnly || history.length <= 1) return alert(isViewerOnly ? "Không có quyền sửa!" : "Không còn lịch sử hoàn tác!");
     refreshMyLock(); history.pop(); const p = history.at(-1);
     $('ioArea').value = p.ioArea || ''; $('zaloInput').value = p.zaloInput || '';
-    Object.keys(H).forEach(k => setVal(k, p[k] || '')); pushSave();
+    Object.keys(H).forEach(k => setVal(k, p[k] || '')); updateSpeedDisplay(); pushSave();
 }
 function pushSave() {
     if (!isInitialized) return;
     clearTimeout(saveTimer); $('syncDot').style.background = '#d97706';
-    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2'].forEach(k => { if ($(k)) H[k] = $(k).value; });
+    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed'].forEach(k => { if ($(k)) H[k] = $(k).value; });
     localStorage.setItem('c_ioArea', $('ioArea').value);
     Object.keys(H).forEach(k => localStorage.setItem('c_' + k, H[k]));
     saveTimer = setTimeout(() => {
@@ -294,7 +417,7 @@ function pushSave() {
             body: JSON.stringify({
                 date: getVal('reportDate'), baseLot: getVal('baseLot'), ioArea: $('ioArea').value,
                 zaloNote: getVal('zaloNote'), zaloIncident: getVal('zaloIncident'), incidentInput: getVal('incInput'),
-                configL1: getVal('configLine1'), configL2: getVal('configLine2'),
+                configL1: getVal('configLine1'), configL2: getVal('configLine2'), lineSpeed: getVal('lineSpeed'),
                 lockHolder: lockState.holder, lockActive: lockState.lastActive
             })
         }).then(() => $('syncDot').style.background = '#16a34a').catch(() => $('syncDot').style.background = '#dc2626');
@@ -312,7 +435,6 @@ function clearAll() {
     if (confirm("Xóa sạch toàn bộ bảng?")) { refreshMyLock(); snapshot(); $('ioArea').value = $('zaloInput').value = ''; Object.keys(H).forEach(k => setVal(k, '')); pushSave(); } 
 }
 
-// Đồng bộ Cloud Realtime
 function fetchRemoteData() {
     if (!API_URL) return;
     fetch(API_URL).then(r => r.json()).then(d => {
@@ -321,21 +443,20 @@ function fetchRemoteData() {
         }
         if (!isInitialized) {
             if (d.ioArea !== undefined && d.ioArea !== '') { $('ioArea').value = d.ioArea; localStorage.setItem('c_ioArea', d.ioArea); }
-            const map = { incidentInput: 'incInput', configL1: 'configLine1', configL2: 'configLine2', date: 'reportDate', baseLot: 'baseLot', zaloNote: 'zaloNote', zaloIncident: 'zaloIncident' };
+            const map = { incidentInput: 'incInput', configL1: 'configLine1', configL2: 'configLine2', lineSpeed: 'lineSpeed', date: 'reportDate', baseLot: 'baseLot', zaloNote: 'zaloNote', zaloIncident: 'zaloIncident' };
             Object.keys(map).forEach(k => { if (d[k] !== undefined) setVal(map[k], d[k]); });
             isInitialized = true; snapshot();
         } else if (isViewerOnly) {
             if (d.ioArea !== undefined && d.ioArea !== $('ioArea').value) $('ioArea').value = d.ioArea;
-            ['zaloNote', 'zaloIncident', 'incidentInput'].forEach(k => {
+            ['zaloNote', 'zaloIncident', 'incidentInput', 'lineSpeed'].forEach(k => {
                 const mapK = k === 'incidentInput' ? 'incInput' : k;
                 if (d[k] !== undefined) setVal(mapK, d[k]);
             });
         }
-        renderLockStatus(); $('syncDot').style.background = '#16a34a';
+        updateSpeedDisplay(); renderLockStatus(); $('syncDot').style.background = '#16a34a';
     }).catch(() => { if (!isInitialized) { isInitialized = true; renderLockStatus(); } $('syncDot').style.background = '#dc2626'; });
 }
 
-// Khởi tạo
 window.onload = () => {
     syncDate(true);
     const cachedIO = localStorage.getItem('c_ioArea');
@@ -346,6 +467,7 @@ window.onload = () => {
 
     $('ioArea').oninput = () => { refreshMyLock(); pushSave(); };
     $('zaloInput').oninput = () => { refreshMyLock(); };
+    updateSpeedDisplay();
     fetchRemoteData();
 };
 
