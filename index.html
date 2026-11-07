@@ -360,25 +360,23 @@ function applyIncident() {
     transformRows((pfx, car, body, line) => {
         if (line !== targetLine) return `${pfx}${body}`;
         let [r1 = '', r2 = ''] = body.split(' - ').map(s => s.trim());
-        const hasR1 = r1.includes('-'), hasR2 = r2.includes('-');
 
-        if (hasR1) {
+        if (!r2.includes('-') && r1.includes('-')) {
             const [s1, e1] = r1.split('-').map(toMins);
-            if (s1 !== null && e1 !== null && (s1 >= sM || (sM >= s1 && sM <= e1))) {
-                const newS1 = (s1 >= sM) ? s1 + shift : s1, newE1 = e1 + shift;
-                r1 = `${toTimeStr(newS1)}-${toTimeStr(newE1)}`;
-                const newS2 = newS1 + offset, newE2 = newS2 + (newE1 - newS1);
-                r2 = `${toTimeStr(newS2)}-${toTimeStr(newE2)}`;
-                return `${pfx}${r1} - ${r2}`;
+            if (s1 !== null && e1 !== null) {
+                const s2 = s1 + offset, e2 = s2 + e1 - s1;
+                r2 = `${toTimeStr(s2)}-${toTimeStr(e2)}`;
             }
         }
 
-        if (hasR2) {
+        if (r2.includes('-')) {
             const [s2, e2] = r2.split('-').map(toMins);
-            if (s2 !== null && e2 !== null && (s2 >= sM || (sM >= s2 && sM <= e2))) {
-                const newS2 = (s2 >= sM) ? s2 + shift : s2, newE2 = e2 + shift;
-                r2 = `${toTimeStr(newS2)}-${toTimeStr(newE2)}`;
-                return `${pfx}${r1} - ${r2}`;
+            if (s2 !== null && e2 !== null) {
+                if (s2 >= sM) {
+                    r2 = `${toTimeStr(s2 + shift)}-${toTimeStr(e2 + shift)}`;
+                } else if (sM >= s2 && sM <= e2) {
+                    r2 = `${toTimeStr(s2)}-${toTimeStr(e2 + shift)}`;
+                }
             }
         }
         return `${pfx}${r1}${r2 ? ' - ' + r2 : ''}`;
@@ -387,7 +385,7 @@ function applyIncident() {
     setVal('zaloIncident', (getVal('zaloIncident') ? getVal('zaloIncident') + '\n' : '') + `${raw} (+${shift}p)`);
     setVal('incInput', '');
     pushSave();
-    alert(`✅ Đã dời Line ${targetLine} thêm ${shift} phút (Dừng từ ${toTimeStr(sM)} đến ${toTimeStr(eM)})!`);
+    alert(`✅ Đã dời Vòng 2 Line ${targetLine} thêm ${shift} phút (Dừng từ ${toTimeStr(sM)} đến ${toTimeStr(eM)})!`);
 }
 
 function parseZalo() {
@@ -465,6 +463,7 @@ function undo() {
     $('ioArea').value = p.ioArea || ''; $('zaloInput').value = p.zaloInput || '';
     Object.keys(H).forEach(k => setVal(k, p[k] || '')); updateSpeedDisplay(); pushSave();
 }
+
 function pushSave() {
     if (!isInitialized) return;
     const apiUrl = getApiUrl();
