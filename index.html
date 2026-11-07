@@ -101,7 +101,7 @@ const getVal = k => isUnlocked && $(k) ? $(k).value : (H[k] || '');
 const setVal = (k, v) => { H[k] = v; if (isUnlocked && $(k)) $(k).value = v; };
 
 const parseTime = s => { const m = (s || '').match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/i); return m ? `${+m[1]}h${m[2]}` : null; };
-const toMins = t => { const p = parseTime(t); if (!p) return null; const [h, m] = p.split('h').map(Number); return (h < 5 ? h + 24 : h) * 60 + m; };
+const toMins = t => { const p = parseTime(t); if (!p) return null; const [h, m] = p.split('h').map(Number); return (h < 6 ? h + 24 : h) * 60 + m; };
 const toTimeStr = m => m === null ? '' : `${Math.floor(((m + 14400) % 1440) / 60)}h${String(m % 60).padStart(2, '0')}`;
 
 const speedToOffset = spd => Math.round(16200 / (+spd || 120));
@@ -344,7 +344,8 @@ function parseIncident(raw) {
         }
     }
     if (sM === null || eM === null) return null;
-    if (eM < sM) eM += 1440;
+
+    if (eM <= sM) eM += 1440;
     const shift = eM - sM;
     return shift > 0 ? { targetLine, sM, eM, shift } : null;
 }
@@ -358,7 +359,7 @@ function applyIncident() {
     refreshMyLock(); snapshot();
 
     let prevEnd = null;
-    let isDelayActive = false;
+    let isDelaying = false;
 
     transformRows((pfx, car, body, line) => {
         if (line !== targetLine) return `${pfx}${body}`;
@@ -369,50 +370,60 @@ function applyIncident() {
         if (s1 === null || e1 === null) return `${pfx}${body}`;
         const dur = (e1 - s1) > 0 ? (e1 - s1) : 0;
 
-        let baseS2 = null, baseE2 = null;
+        let baseS2 = s1 + offset;
+        let baseE2 = baseS2 + dur;
         if (r2.includes('-')) {
             const p2 = r2.split('-').map(toMins);
             if (p2[0] !== null && p2[1] !== null) {
                 baseS2 = p2[0];
                 baseE2 = p2[1];
+                if (baseE2 < baseS2) baseE2 += 1440;
             }
-        }
-        if (baseS2 === null || baseE2 === null) {
-            baseS2 = s1 + offset;
-            baseE2 = baseS2 + dur;
         }
 
         let newS2 = baseS2, newE2 = baseE2;
 
-        if (!isDelayActive) {
+        if (!isDelaying) {
             if (baseE2 <= sM) {
                 newS2 = baseS2;
                 newE2 = baseE2;
                 prevEnd = newE2;
-            } else if (baseS2 <= sM && baseE2 > sM) {
+            } else if (baseS2 < sM && baseE2 > sM) {
                 newS2 = baseS2;
-                newE2 = baseE2 + shift;
+                const workedBeforeStop = sM - baseS2;
+                const remainWork = Math.max(0, dur - workedBeforeStop);
+                newE2 = eM + remainWork;
                 prevEnd = newE2;
-                isDelayActive = true;
-            } else if (baseS2 > sM && baseS2 < eM) {
-                newS2 = eM;
-                newE2 = eM + dur;
+                isDelaying = true;
+            } else if (baseS2 >= sM && baseS2 < eM) {
+                let candS2 = baseS2 + shift;
+                let candE2 = baseE2 + shift;
+                if (prevEnd !== null && candS2 < prevEnd) { candS2 = prevEnd; candE2 = candS2 + dur; }
+                if (candS2 < eM) { candS2 = eM; candE2 = candS2 + dur; }
+                newS2 = candS2;
+                newE2 = candE2;
                 prevEnd = newE2;
-                isDelayActive = true;
+                isDelaying = true;
             } else {
                 newS2 = baseS2;
                 newE2 = baseE2;
                 prevEnd = newE2;
             }
         } else {
-            if (baseS2 >= prevEnd && baseS2 >= eM) {
-                isDelayActive = false;
+            if (prevEnd !== null && baseS2 >= prevEnd && baseS2 >= eM) {
+                isDelaying = false;
                 newS2 = baseS2;
                 newE2 = baseE2;
                 prevEnd = newE2;
             } else {
-                newS2 = Math.max(prevEnd, eM);
-                newE2 = newS2 + dur;
+                let candS2 = baseS2 + shift;
+                let candE2 = baseE2 + shift;
+                if (prevEnd !== null && candS2 < prevEnd) {
+                    candS2 = prevEnd;
+                    candE2 = candS2 + dur;
+                }
+                newS2 = candS2;
+                newE2 = candE2;
                 prevEnd = newE2;
             }
         }
