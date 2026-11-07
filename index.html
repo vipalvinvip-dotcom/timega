@@ -97,8 +97,8 @@ let lockState = { holder: '', lastActive: 0 }, isViewerOnly = true, isInitialize
 let isUnlocked = false, history = [], saveTimer, currentOTP = null, otpExpires = 0;
 
 const H = { zaloNote: '', zaloIncident: '', incInput: '', configLine1: '1, 10, 16, 21', configLine2: '22, 32, 34, 45', lineSpeed: '120', reportDate: '', baseLot: '' };
-const getVal = k => isUnlocked && $(k) ?$(k).value : (H[k] || '');
-const setVal = (k, v) => { H[k] = v; if (isUnlocked && $(k))$(k).value = v; };
+const getVal = k => isUnlocked && $(k) ? $(k).value : (H[k] || '');
+const setVal = (k, v) => { H[k] = v; if (isUnlocked && $(k)) $(k).value = v; };
 
 const parseTime = s => { const m = (s || '').match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/i); return m ? `${+m[1]}h${m[2]}` : null; };
 const toMins = t => { const p = parseTime(t); if (!p) return null; const [h, m] = p.split('h').map(Number); return (h < 5 ? h + 24 : h) * 60 + m; };
@@ -112,9 +112,9 @@ const getSpeedTimeDesc = spd => {
 };
 function updateSpeedDisplay() {
     const spd = getVal('lineSpeed') || 120, desc = getSpeedTimeDesc(spd);
-    if ($('speedTimePreview'))$('speedTimePreview').value = desc;
-    if ($('speedBadge'))$('speedBadge').innerText = `${spd} con/p`;
-    if ($('intervalBadge'))$('intervalBadge').innerText = desc;
+    if ($('speedTimePreview')) $('speedTimePreview').value = desc;
+    if ($('speedBadge')) $('speedBadge').innerText = `${spd} con/p`;
+    if ($('intervalBadge')) $('intervalBadge').innerText = desc;
 }
 
 const cleanZaloStr = s => (s || '').replace(/\b(?:bs|biển\s*số|bks|biển)\s*[:\.]?\s*[a-z0-9:\.-]+/gi, ' ').replace(/\b(?:line\s*\d+|l\s*\d+)\s*[:\.]?/gi, ' ');
@@ -140,7 +140,7 @@ function renderLockStatus() {
     $('lockStatusBar').className = `lock-bar ${isLocked ? 's-view' : 's-edit'}`;
     $('lockStatusText').innerText = !isInitialized ? '⏳ Đang đồng bộ dữ liệu...' : (isViewerOnly ? `🔒 Đang có người khác nhập liệu (Tự mở sau ${Math.max(1, Math.ceil((35000 - (Date.now() - lockState.lastActive)) / 1000))}s nếu họ dừng)` : '🟢 Bạn đang giữ quyền chỉnh sửa');
     $('claimBtn').style.display = (isInitialized && isViewerOnly) ? 'inline-block' : 'none';
-    $('ioArea').readOnly =$('zaloInput').readOnly = isLocked;
+    $('ioArea').readOnly = $('zaloInput').readOnly = isLocked;
     document.querySelectorAll('.edit-btn').forEach(btn => btn.disabled = isLocked);
 }
 function forceClaimLock() { refreshMyLock(); pushSave(); alert("⚡ Bạn đã nhận quyền chỉnh sửa thành công!"); }
@@ -169,7 +169,8 @@ function handleAuthClick() {
         btn.innerText = "🔒 Chờ OTP...";
         btn.disabled = false;
         $('otpInputWrap').style.display = 'flex';
-        $('inlineOtpInput').value = '';$('inlineOtpInput').focus();
+        $('inlineOtpInput').value = '';
+        $('inlineOtpInput').focus();
     }, 500);
 }
 
@@ -197,7 +198,8 @@ function submitOtp() {
 
 function cancelOtp() {
     $('otpInputWrap').style.display = 'none';
-    if ($('inlineOtpInput')) $('inlineOtpInput').value = '';$('lockBtn').innerText = isUnlocked ? "🔓 Khóa Cài đặt" : "Cài đặt";
+    if ($('inlineOtpInput')) $('inlineOtpInput').value = '';
+    $('lockBtn').innerText = isUnlocked ? "🔓 Khóa Cài đặt" : "Cài đặt";
 }
 
 function saveNewSheetUrl() {
@@ -218,7 +220,7 @@ function saveNewSheetUrl() {
 function resetDefaultSheetUrl() {
     if (confirm("Khôi phục về Sheet mặc định ban đầu?")) {
         setApiUrl('');
-        if ($('customApiUrl'))$('customApiUrl').value = DEFAULT_API_URL;
+        if ($('customApiUrl')) $('customApiUrl').value = DEFAULT_API_URL;
         isInitialized = false;
         fetchRemoteData(true);
         alert("✅ Đã khôi phục về link Sheet mặc định!");
@@ -229,7 +231,8 @@ function unlockSettings() {
     isUnlocked = true;
     $('lockBtn').innerText = "🔓 Khóa Cài đặt";
     $('lockBtn').className = "b-warn";
-    $('otpInputWrap').style.display = 'none';$('secureArea').innerHTML = `
+    $('otpInputWrap').style.display = 'none';
+    $('secureArea').innerHTML = `
         <div class="card" style="border-color:#0284c7; background:#f8fafc;">
             <label style="color:#0284c7; font-weight:700;">🔗 LIÊN KẾT GOOGLE SHEET (WEB APP URL)</label>
             <input type="text" id="customApiUrl" value="${getApiUrl()}" placeholder="Dán link Web App mới vào đây">
@@ -279,9 +282,10 @@ function unlockSettings() {
 }
 
 function lockSettings() {
-    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed', 'reportDate', 'baseLot'].forEach(k => { if ($(k)) H[k] =$(k).value; });
+    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed', 'reportDate', 'baseLot'].forEach(k => { if ($(k)) H[k] = $(k).value; });
     isUnlocked = false;
-    $('secureArea').innerHTML = '';$('lockBtn').innerText = "Cài đặt";
+    $('secureArea').innerHTML = '';
+    $('lockBtn').innerText = "Cài đặt";
     $('lockBtn').className = "b-slate edit-btn";
     cancelOtp();
     updateSpeedDisplay();
@@ -289,7 +293,7 @@ function lockSettings() {
 
 function transformRows(fn) {
     let line = 1;
-    $('ioArea').value =$('ioArea').value.split('\n').map(r => {
+    $('ioArea').value = $('ioArea').value.split('\n').map(r => {
         if (r.includes('LINE 1')) line = 1; if (r.includes('LINE 2')) line = 2;
         const m = r.match(/^(Xe(\d+):\s*)(.*)$/i);
         return m ? fn(m[1], +m[2], m[3].trim(), line, r) : r;
@@ -306,3 +310,301 @@ function autoRounds(forceRecalc = false) {
                 r2 = `${toTimeStr(s + offset)}-${toTimeStr(s + offset + e - s)}`;
             }
         }
+        return `${pfx}${r1}${r2 ? ' - ' + r2 : ''}`;
+    });
+    $('ioArea').value = `${getHeader()}\n\n${$('ioArea').value.split('\n').filter(l => !l.includes('🐓')).join('\n').trim()}\n`;
+}
+
+function parseIncident(raw) {
+    if (!raw) return null;
+    let targetLine = 1;
+    if (/\b(?:line\s*2|l2|chuy[ềe]n\s*2)\b/i.test(raw)) targetLine = 2;
+    else if (/\b(?:line\s*1|l1|chuy[ềe]n\s*1)\b/i.test(raw)) targetLine = 1;
+
+    let sM = null, eM = null;
+    const dungMatch = raw.match(/(?:dừng|dung|stop|nghỉ|nghi)[^\d:]*([0-2]?[0-9]\s*[:hgp\.]\s*[0-5][0-9])/i);
+    const chayMatch = raw.match(/(?:chạy|chay|run|start|hoạt động|hoat dong)[^\d:]*([0-2]?[0-9]\s*[:hgp\.]\s*[0-5][0-9])/i);
+
+    if (dungMatch && chayMatch) {
+        sM = toMins(parseTime(dungMatch[1]));
+        eM = toMins(parseTime(chayMatch[1]));
+    }
+    if (sM === null || eM === null) {
+        const rangeMatch = raw.match(/([0-2]?[0-9]\s*[:hgp\.]\s*[0-5][0-9])\s*(?:-|\bđến\b|\bden\b|\btới\b|\btoi\b)\s*([0-2]?[0-9]\s*[:hgp\.]\s*[0-5][0-9])/i);
+        if (rangeMatch) {
+            sM = toMins(parseTime(rangeMatch[1]));
+            eM = toMins(parseTime(rangeMatch[2]));
+        }
+    }
+    if (sM === null || eM === null) {
+        const allTimes = (cleanForTime(raw).match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime);
+        if (allTimes.length >= 2) {
+            sM = toMins(allTimes[0]);
+            eM = toMins(allTimes[1]);
+        }
+    }
+    if (sM === null || eM === null) return null;
+    if (eM < sM) eM += 1440;
+    const shift = eM - sM;
+    return shift > 0 ? { targetLine, sM, eM, shift } : null;
+}
+
+function applyIncident() {
+    if (isViewerOnly) return alert("Bạn không có quyền sửa!");
+    const raw = getVal('incInput').trim(), inc = parseIncident(raw);
+    if (!inc) return alert("Cú pháp ví dụ:\nLine 1 dừng 19h29 Line 1 chạy 19h39\nhoặc: Line 1 dừng 19h29-19h39");
+    
+    const { targetLine, sM, eM, shift } = inc, offset = getRoundOffset();
+    refreshMyLock(); snapshot();
+
+    let prevEnd = null;
+    let isDelayActive = false;
+
+    transformRows((pfx, car, body, line) => {
+        if (line !== targetLine) return `${pfx}${body}`;
+        let [r1 = '', r2 = ''] = body.split(' - ').map(s => s.trim());
+        if (!r1.includes('-')) return `${pfx}${body}`;
+
+        const [s1, e1] = r1.split('-').map(toMins);
+        if (s1 === null || e1 === null) return `${pfx}${body}`;
+        const dur = (e1 - s1) > 0 ? (e1 - s1) : 0;
+
+        let baseS2 = null, baseE2 = null;
+        if (r2.includes('-')) {
+            const p2 = r2.split('-').map(toMins);
+            if (p2[0] !== null && p2[1] !== null) {
+                baseS2 = p2[0];
+                baseE2 = p2[1];
+            }
+        }
+        if (baseS2 === null || baseE2 === null) {
+            baseS2 = s1 + offset;
+            baseE2 = baseS2 + dur;
+        }
+
+        let newS2 = baseS2, newE2 = baseE2;
+
+        if (!isDelayActive) {
+            if (baseE2 <= sM) {
+                newS2 = baseS2;
+                newE2 = baseE2;
+                prevEnd = newE2;
+            } else if (baseS2 <= sM && baseE2 > sM) {
+                newS2 = baseS2;
+                newE2 = baseE2 + shift;
+                prevEnd = newE2;
+                isDelayActive = true;
+            } else if (baseS2 > sM && baseS2 < eM) {
+                newS2 = eM;
+                newE2 = eM + dur;
+                prevEnd = newE2;
+                isDelayActive = true;
+            } else {
+                newS2 = baseS2;
+                newE2 = baseE2;
+                prevEnd = newE2;
+            }
+        } else {
+            if (baseS2 >= prevEnd && baseS2 >= eM) {
+                isDelayActive = false;
+                newS2 = baseS2;
+                newE2 = baseE2;
+                prevEnd = newE2;
+            } else {
+                newS2 = Math.max(prevEnd, eM);
+                newE2 = newS2 + dur;
+                prevEnd = newE2;
+            }
+        }
+
+        r2 = `${toTimeStr(newS2)}-${toTimeStr(newE2)}`;
+        return `${pfx}${r1} - ${r2}`;
+    });
+
+    setVal('zaloIncident', (getVal('zaloIncident') ? getVal('zaloIncident') + '\n' : '') + `${raw} (+${shift}p)`);
+    setVal('incInput', '');
+    pushSave();
+    alert(`✅ Đã dời Vòng 2 Line ${targetLine} thêm ${shift} phút (Dừng từ ${toTimeStr(sM)} đến ${toTimeStr(eM)})!`);
+}
+
+function parseZalo() {
+    if (isViewerOnly) return alert("Đang có người khác nhập liệu, bạn không thể sửa!");
+    const raw = $('zaloInput').value.trim();
+    if (!raw || !$('ioArea').value.trim()) return alert("Thiếu dữ liệu Time hoặc tin nhắn!");
+    refreshMyLock(); snapshot();
+
+    const clauses = raw.split(/[\n;,]+/).map(s => s.trim()).filter(Boolean);
+    const allTimes = (cleanForTime(raw).match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime);
+    let ctxLine = /\b(l2|line\s*2)\b/i.test(raw) ? 2 : (/\b(l1|line\s*1)\b/i.test(raw) ? 1 : null);
+    const actions = [];
+
+    clauses.forEach((cl, i) => {
+        if (/\b(l2|line\s*2)\b/i.test(cl)) ctxLine = 2;
+        else if (/\b(l1|line\s*1)\b/i.test(cl)) ctxLine = 1;
+
+        const clean = cleanZaloStr(cl), forTime = cleanForTime(cl);
+        let times = (forTime.match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime);
+        if (!times.length) {
+            const near = clauses.slice(i + 1).concat(clauses.slice(0, i)).find(s => parseTime(cleanForTime(s)));
+            times = near ? (cleanForTime(near).match(/\b(2[0-3]|[01]?[0-9])\s*[:hgp\.]\s*([0-5][0-9])\b/gi) || []).map(parseTime) : allTimes;
+        }
+        if (!times.length) return;
+
+        const ext = (reg, type) => [...clean.matchAll(reg)].forEach(m => actions.push({ car: +m[1], type, times, line: ctxLine }));
+        ext(/(?:hết|het|xong|stop)\s+(?:xe|x)\s*(\d+)/gi, 'HET'); 
+        ext(/(?:xe|x)\s*(\d+)\s*(?:hết|het|xong|stop)/gi, 'HET');
+        ext(/(?:treo|start|bắt đầu)\s+(?:xe|x)\s*(\d+)/gi, 'TREO'); 
+        ext(/(?:xe|x)\s*(\d+)\s*(?:treo|start|bắt đầu)/gi, 'TREO');
+        ext(/(?:xe|x)\s*(\d+)(?!\s*(?:hết|treo|start|stop))/gi, 'AUTO');
+    });
+
+    transformRows((pfx, car, body, lNum) => {
+        const act = actions.find(a => a.car === car && (!a.line || a.line === lNum));
+        if (!act) return `${pfx}${body}`;
+        let [r1 = '', r2 = ''] = body.split(' - ').map(s => s.trim()), [s = '', e = ''] = r1.includes('-') ? r1.split('-') : [r1, ''];
+        if (act.type === 'HET') e = act.times[0]; 
+        else if (act.type === 'TREO') s = act.times[0];
+        else if (act.times.length >= 2) [s, e] = act.times; 
+        else if (!s) s = act.times[0]; 
+        else e = act.times[0];
+        return `${pfx}${s}-${e}${r2 ? ' - ' + r2 : ''}`;
+    });
+
+    autoRounds(); 
+    setVal('zaloNote', (getVal('zaloNote') ? getVal('zaloNote') + '\n' : '') + raw);
+    $('zaloInput').value = ''; 
+    pushSave();
+}
+
+function genTemplate() {
+    if (isViewerOnly) return alert("Bạn không có quyền sửa!");
+    refreshMyLock(); snapshot();
+    const parseL = (cfg, def) => {
+        const arr = (cfg || '').split(',').map(s => s.trim()).filter(Boolean);
+        return arr.slice(0, -1).map((val, i) => ({
+            name: val.includes(':') ? val.split(':')[0].trim() : `${def + i}`,
+            cars: Array.from({ length: (+(arr[i + 1].split(':')[1] || arr[i + 1]) - +(val.split(':')[1] || val)) }, (_, k) => +(val.split(':')[1] || val) + k)
+        }));
+    };
+    const render = (name, lots) => lots.length ? `${name}\n` + lots.map(l => `\n • Sublot ${l.name}\n` + l.cars.map(c => `Xe${c}:`).join('\n')).join('\n') + '\n\n' : '';
+    $('ioArea').value = `${getHeader()}\n\n${render('LINE 1', parseL(getVal('configLine1') || '1, 10, 16, 21', 11))}${render('LINE 2', parseL(getVal('configLine2') || '22, 32, 34, 45', 21))}`.trim() + '\n';
+    pushSave();
+}
+
+function snapshot() {
+    const s = { ioArea: $('ioArea').value, zaloInput: $('zaloInput').value, ...H };
+    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed'].forEach(k => { if ($(k)) s[k] = $(k).value; });
+    if (JSON.stringify(history.at(-1)) !== JSON.stringify(s)) { history.push(s); if (history.length > 25) history.shift(); }
+}
+function undo() {
+    if (isViewerOnly || history.length <= 1) return alert(isViewerOnly ? "Không có quyền sửa!" : "Không còn lịch sử hoàn tác!");
+    refreshMyLock(); history.pop(); const p = history.at(-1);
+    $('ioArea').value = p.ioArea || ''; $('zaloInput').value = p.zaloInput || '';
+    Object.keys(H).forEach(k => setVal(k, p[k] || '')); updateSpeedDisplay(); pushSave();
+}
+
+function pushSave() {
+    if (!isInitialized) return;
+    const apiUrl = getApiUrl();
+    if (!apiUrl) return;
+    clearTimeout(saveTimer); $('syncDot').style.background = '#d97706';
+    if (isUnlocked) ['zaloNote', 'zaloIncident', 'incInput', 'configLine1', 'configLine2', 'lineSpeed'].forEach(k => { if ($(k)) H[k] = $(k).value; });
+    localStorage.setItem('c_ioArea', $('ioArea').value);
+    Object.keys(H).forEach(k => localStorage.setItem('c_' + k, H[k]));
+    saveTimer = setTimeout(() => {
+        fetch(apiUrl, {
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+                date: getVal('reportDate'), baseLot: getVal('baseLot'), ioArea: $('ioArea').value,
+                zaloNote: getVal('zaloNote'), zaloIncident: getVal('zaloIncident'), incidentInput: getVal('incInput'),
+                configL1: getVal('configLine1'), configL2: getVal('configLine2'), lineSpeed: getVal('lineSpeed'),
+                lockHolder: lockState.holder, lockActive: lockState.lastActive
+            })
+        }).then(() => $('syncDot').style.background = '#16a34a').catch(() => $('syncDot').style.background = '#dc2626');
+    }, 600);
+}
+
+async function pasteVal(id) { 
+    if (isViewerOnly) return alert("Bạn không có quyền sửa!");
+    refreshMyLock(); snapshot(); 
+    try { const t = await navigator.clipboard.readText(); if ($(id)) $(id).value = t; else setVal(id, t); pushSave(); } catch {} 
+}
+async function copySchedule() { autoRounds(); await navigator.clipboard.writeText($('ioArea').value); alert("✅ Đã chép lịch!"); }
+
+function clearAll() { 
+    if (isViewerOnly) return alert("Bạn không có quyền sửa!");
+    if (confirm("Xóa sạch toàn bộ bảng?")) { 
+        refreshMyLock(); 
+        snapshot(); 
+        $('ioArea').value = $('zaloInput').value = ''; 
+        ['zaloNote', 'zaloIncident', 'incInput'].forEach(k => setVal(k, '')); 
+        pushSave(); 
+    } 
+}
+
+function fetchRemoteData(forcePull = false) {
+    const apiUrl = getApiUrl();
+    if (!apiUrl) return;
+    fetch(apiUrl).then(r => r.json()).then(d => {
+        if (d.lockHolder !== undefined && d.lockActive !== undefined) {
+            lockState.holder = d.lockHolder; lockState.lastActive = +d.lockActive;
+        }
+
+        const map = { incidentInput: 'incInput', configL1: 'configLine1', configL2: 'configLine2', lineSpeed: 'lineSpeed', date: 'reportDate', baseLot: 'baseLot', zaloNote: 'zaloNote', zaloIncident: 'zaloIncident' };
+
+        if (!isInitialized || forcePull) {
+            if (d.ioArea !== undefined && d.ioArea !== '') { $('ioArea').value = d.ioArea; localStorage.setItem('c_ioArea', d.ioArea); }
+            Object.keys(map).forEach(k => { 
+                if (d[k] !== undefined && d[k] !== '') setVal(map[k], d[k]); 
+            });
+            isInitialized = true; snapshot();
+            if (forcePull) alert("✅ Đã đồng bộ lại toàn bộ dữ liệu mới nhất từ Sheet!");
+        } else if (isViewerOnly || (!userHasModified && Date.now() - myLastActionTime > 30000)) {
+            if (d.ioArea !== undefined && d.ioArea !== $('ioArea').value && d.ioArea !== '') {
+                $('ioArea').value = d.ioArea;
+                localStorage.setItem('c_ioArea', d.ioArea);
+            }
+            ['zaloNote', 'zaloIncident', 'incidentInput'].forEach(k => {
+                const mapK = k === 'incidentInput' ? 'incInput' : k;
+                if (d[k] !== undefined && d[k] !== '') setVal(mapK, d[k]);
+            });
+        }
+        updateSpeedDisplay(); renderLockStatus(); $('syncDot').style.background = '#16a34a';
+    }).catch(() => { 
+        if (!isInitialized) { isInitialized = true; renderLockStatus(); } 
+        $('syncDot').style.background = '#dc2626'; 
+    });
+}
+
+window.onload = () => {
+    syncDate(true);
+    const cachedIO = localStorage.getItem('c_ioArea');
+    if (cachedIO) $('ioArea').value = cachedIO;
+    Object.keys(H).forEach(k => { const c = localStorage.getItem('c_' + k); if (c) H[k] = c; });
+
+    if (!H.configLine1) H.configLine1 = '1, 10, 16, 21';
+    if (!H.configLine2) H.configLine2 = '22, 32, 34, 45';
+    if (!H.lineSpeed) H.lineSpeed = '120';
+
+    $('ioArea').oninput = () => { refreshMyLock(); pushSave(); };
+    $('zaloInput').oninput = () => { refreshMyLock(); };
+    updateSpeedDisplay();
+    fetchRemoteData();
+};
+
+setInterval(() => {
+    if (isInitialized && !isViewerOnly && userHasModified && (Date.now() - myLastActionTime < 30000)) {
+        lockState.lastActive = Date.now(); pushSave();
+    }
+    fetchRemoteData();
+}, 6000);
+
+setInterval(() => { 
+    if (!isViewerOnly && isInitialized) {
+        const old = getVal('reportDate'); syncDate(true);
+        if (old !== getVal('reportDate') && $('ioArea').value.includes('🐓')) { autoRounds(); pushSave(); }
+    }
+}, 30000);
+</script>
+</body>
+</html>
